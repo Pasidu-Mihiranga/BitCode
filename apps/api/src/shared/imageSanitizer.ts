@@ -80,7 +80,7 @@ export async function sanitizeAndStoreImage(input: Uint8Array | Buffer): Promise
   await mkdir(UPLOAD_DIR, { recursive: true });
   const filename = `${uuid()}.jpg`;
   const fullPath = join(UPLOAD_DIR, filename);
-  await writeFile(fullPath, processed, { mode: 0o640 });
+  await writeFile(fullPath, processed, { mode: 0o644 });
 
   const sha256 = createHash("sha256").update(processed).digest("hex");
 
