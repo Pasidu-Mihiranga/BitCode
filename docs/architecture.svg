@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 820" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#444"/>
+    </marker>
+    <linearGradient id="hot" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#fff7f4"/>
+      <stop offset="1" stop-color="#ffe4d6"/>
+    </linearGradient>
+    <linearGradient id="db" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#dfe9ff"/>
+      <stop offset="1" stop-color="#b8c8ff"/>
+    </linearGradient>
+    <linearGradient id="cache" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#ffe1e1"/>
+      <stop offset="1" stop-color="#ffb5b5"/>
+    </linearGradient>
+    <style>
+      .title { font-size: 22px; font-weight: 700; fill: #1d1d1f; }
+      .sub { font-size: 13px; fill: #555; }
+      .box { fill: #fff; stroke: #1d1d1f; stroke-width: 1.4; }
+      .pill { fill: #fff; stroke: #1d1d1f; stroke-width: 1; }
+      .lbl { font-size: 13px; font-weight: 600; fill: #1d1d1f; }
+      .small { font-size: 11px; fill: #444; }
+      .edge { stroke: #444; stroke-width: 1.4; fill: none; }
+      .edge-key { stroke: #d9480f; stroke-width: 2; fill: none; }
+      .legend { font-size: 11px; fill: #444; }
+    </style>
+  </defs>
+
+  <text x="40" y="40" class="title">SwiftDrop  Flash Sale Architecture</text>
+  <text x="40" y="62" class="sub">Bun + Elysia ∑ Postgres 16 ∑ Redis 7 ∑ Native WS + Redis Pub/Sub ∑ NGINX LB ∑ Next.js 15</text>
+
+  <!-- Client -->
+  <rect x="40" y="100" width="200" height="80" rx="10" class="box"/>
+  <text x="140" y="135" text-anchor="middle" class="lbl">Browser Client</text>
+  <text x="140" y="155" text-anchor="middle" class="small">Next.js 15 ∑ WS subscriber</text>
+
+  <!-- NGINX -->
+  <rect x="320" y="100" width="220" height="80" rx="10" fill="url(#hot)" stroke="#d9480f" stroke-width="1.6"/>
+  <text x="430" y="130" text-anchor="middle" class="lbl">NGINX (edge)</text>
+  <text x="430" y="150" text-anchor="middle" class="small">limit_req_zone ∑ LB ∑ WS upgrade</text>
+  <text x="430" y="167" text-anchor="middle" class="small">(a) burst absorption  429, never 5xx</text>
+
+  <line x1="240" y1="140" x2="320" y2="140" class="edge" marker-end="url(#arrow)"/>
+
+  <!-- API 1 -->
+  <rect x="620" y="80" width="280" height="120" rx="10" class="box"/>
+  <text x="760" y="105" text-anchor="middle" class="lbl">Elysia API #1 (Bun)</text>
+  <text x="760" y="124" text-anchor="middle" class="small">Route í Service í Repo (NFR-08)</text>
+  <text x="760" y="142" text-anchor="middle" class="small">(c) atomic reserve ∑ (e) role guard</text>
+  <text x="760" y="160" text-anchor="middle" class="small">(f) withAudit hash-chain wrapper</text>
+  <text x="760" y="180" text-anchor="middle" class="small">+ expiry sweeper ∑ auto go-live cron</text>
+
+  <!-- API 2 -->
+  <rect x="940" y="80" width="280" height="120" rx="10" class="box"/>
+  <text x="1080" y="105" text-anchor="middle" class="lbl">Elysia API #2 (Bun)</text>
+  <text x="1080" y="124" text-anchor="middle" class="small">Same code ∑ stateless replica</text>
+  <text x="1080" y="142" text-anchor="middle" class="small">Each WS hub joins Redis Pub/Sub</text>
+  <text x="1080" y="160" text-anchor="middle" class="small">No singleton crons here</text>
+
+  <line x1="540" y1="135" x2="620" y2="135" class="edge" marker-end="url(#arrow)"/>
+  <line x1="540" y1="155" x2="940" y2="155" class="edge" marker-end="url(#arrow)"/>
+
+  <!-- App rate limiter / Service / Repo (in-API stack inside each replica) -->
+  <rect x="620" y="220" width="600" height="100" rx="10" class="box" fill="#fafafa"/>
+  <text x="920" y="245" text-anchor="middle" class="lbl">Service Layer (business logic + withAudit)</text>
+  <text x="920" y="265" text-anchor="middle" class="small">App Rate Limiter (Redis sliding window) ∑ argon2id only at /auth/login</text>
+  <text x="920" y="285" text-anchor="middle" class="small">Reserve / Extend / Decline / Confirm / Pay state machine</text>
+  <text x="920" y="305" text-anchor="middle" class="small">Repo Layer (Drizzle ORM)  the ONLY place that imports drizzle-orm</text>
+
+  <line x1="760" y1="200" x2="760" y2="220" class="edge" marker-end="url(#arrow)"/>
+  <line x1="1080" y1="200" x2="1080" y2="220" class="edge" marker-end="url(#arrow)"/>
+
+  <!-- PostgreSQL -->
+  <rect x="320" y="380" width="340" height="160" rx="12" fill="url(#db)" stroke="#1c3fa0" stroke-width="1.6"/>
+  <text x="490" y="410" text-anchor="middle" class="lbl">PostgreSQL 16</text>
+  <text x="490" y="432" text-anchor="middle" class="small">(b) UPDATE items SET reserved_stock += 1</text>
+  <text x="490" y="448" text-anchor="middle" class="small">WHERE stock - reserved - sold e 1 RETURNING</text>
+  <text x="490" y="468" text-anchor="middle" class="small">(d) UNIQUE INDEX (user, item, event) WHERE confirmed</text>
+  <text x="490" y="484" text-anchor="middle" class="small">CHECK reserved + sold d stock ∑ CHECK extensions d 2</text>
+  <text x="490" y="504" text-anchor="middle" class="small">audit_log: prev_hash + entry_hash = SHA-256 chain</text>
+  <text x="490" y="524" text-anchor="middle" class="small">email_verifications: single-use 15-min tokens</text>
+
+  <line x1="760" y1="320" x2="600" y2="380" class="edge-key" marker-end="url(#arrow)"/>
+  <line x1="1080" y1="320" x2="660" y2="380" class="edge" marker-end="url(#arrow)"/>
+
+  <!-- Redis -->
+  <rect x="720" y="380" width="240" height="160" rx="12" fill="url(#cache)" stroke="#a82828" stroke-width="1.4"/>
+  <text x="840" y="410" text-anchor="middle" class="lbl">Redis 7</text>
+  <text x="840" y="432" text-anchor="middle" class="small">JWT jti blocklist</text>
+  <text x="840" y="448" text-anchor="middle" class="small">Per-user generation counter</text>
+  <text x="840" y="464" text-anchor="middle" class="small">Rate-limit ZSET</text>
+  <text x="840" y="486" text-anchor="middle" class="small">Pub/Sub channels:</text>
+  <text x="840" y="502" text-anchor="middle" class="small">  stock:&lt;eventId&gt;</text>
+  <text x="840" y="518" text-anchor="middle" class="small">  event:&lt;eventId&gt;</text>
+
+  <line x1="760" y1="320" x2="800" y2="380" class="edge" marker-end="url(#arrow)"/>
+  <line x1="1080" y1="320" x2="860" y2="380" class="edge" marker-end="url(#arrow)"/>
+
+  <!-- MailHog -->
+  <rect x="1020" y="380" width="200" height="120" rx="12" fill="#eef9ec" stroke="#2f7d32"/>
+  <text x="1120" y="410" text-anchor="middle" class="lbl">MailHog</text>
+  <text x="1120" y="430" text-anchor="middle" class="small">SMTP :1025 ∑ UI :8025</text>
+  <text x="1120" y="450" text-anchor="middle" class="small">feat3 verification +</text>
+  <text x="1120" y="466" text-anchor="middle" class="small">password change link</text>
+  <text x="1120" y="486" text-anchor="middle" class="small">(demo inbox for judges)</text>
+
+  <line x1="950" y1="320" x2="1080" y2="380" class="edge" marker-end="url(#arrow)"/>
+
+  <!-- WS fanout -->
+  <rect x="320" y="620" width="900" height="80" rx="10" class="box"/>
+  <text x="770" y="650" text-anchor="middle" class="lbl">WebSocket Hub (per replica) ê SUBSCRIBE stock:* + event:*</text>
+  <text x="770" y="672" text-anchor="middle" class="small">Forward to local sockets. Cross-replica fan-out happens through Redis Pub/Sub, not direct WS.</text>
+  <text x="770" y="690" text-anchor="middle" class="small">Browsers reconnect with exponential backoff on disconnect.</text>
+
+  <line x1="840" y1="540" x2="700" y2="620" class="edge" marker-end="url(#arrow)"/>
+  <line x1="140" y1="180" x2="320" y2="660" class="edge" marker-end="url(#arrow)"/>
+
+  <!-- Audit chain note -->
+  <rect x="40" y="380" width="240" height="160" rx="12" class="box"/>
+  <text x="160" y="410" text-anchor="middle" class="lbl">Audit Chain (feat2)</text>
+  <text x="160" y="432" text-anchor="middle" class="small">SHA-256(prev || ts || actor</text>
+  <text x="160" y="448" text-anchor="middle" class="small">|| action || payload_hash)</text>
+  <text x="160" y="470" text-anchor="middle" class="small">Inside the same TX as the</text>
+  <text x="160" y="486" text-anchor="middle" class="small">business mutation (NFR-07)</text>
+  <text x="160" y="508" text-anchor="middle" class="small">Admin UI: Verify button</text>
+  <text x="160" y="524" text-anchor="middle" class="small">pinpoints first broken row.</text>
+
+  <line x1="280" y1="450" x2="320" y2="450" class="edge" marker-end="url(#arrow)"/>
+
+  <!-- Legend -->
+  <rect x="40" y="730" width="1180" height="60" rx="8" fill="#fafafa" stroke="#ddd"/>
+  <text x="60" y="752" class="legend"><tspan font-weight="700">(a)</tspan> NGINX limit_req í 429    <tspan font-weight="700">(b)</tspan> Atomic UPDATE  zero oversell    <tspan font-weight="700">(c)</tspan> UNIQUE partial idx  zero duplicate orders    <tspan font-weight="700">(d)</tspan> Redis Pub/Sub í WS  cross-replica stock</text>
+  <text x="60" y="772" class="legend"><tspan font-weight="700">(e)</tspan> requireAuth + requireAdmin middleware    <tspan font-weight="700">(f)</tspan> withAudit() SHA-256 chain in same TX    <tspan font-weight="700">(g)</tspan> Route í Service í Repo modules (NFR-08)</text>
+</svg>
