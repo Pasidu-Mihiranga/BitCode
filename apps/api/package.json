@@ -1,0 +1,35 @@
+{
+  "name": "@swiftdrop/api",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "seed": "bun run src/seed.ts",
+    "db:push": "drizzle-kit push --force",
+    "db:generate": "drizzle-kit generate",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "elysia": "^1.2.10",
+    "@elysiajs/jwt": "^1.2.0",
+    "@elysiajs/cors": "^1.2.0",
+    "@elysiajs/swagger": "^1.2.0",
+    "drizzle-orm": "^0.36.4",
+    "postgres": "^3.4.5",
+    "ioredis": "^5.4.1",
+    "@node-rs/argon2": "^2.0.2",
+    "nodemailer": "^6.9.16",
+    "sharp": "^0.33.5",
+    "file-type": "^19.6.0",
+    "uuid": "^11.0.3"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.14",
+    "@types/nodemailer": "^6.4.17",
+    "@types/uuid": "^10.0.0",
+    "drizzle-kit": "^0.28.1",
+    "typescript": "^5.7.2"
+  }
+}
