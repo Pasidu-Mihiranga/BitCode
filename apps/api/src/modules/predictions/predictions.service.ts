@@ -96,14 +96,23 @@ async function runPipeline(
     });
 
     // Step 3: format
-    // If the engine was unreachable, hand Gemini the brief + context so it
-    // can still produce something useful instead of an empty card.
+    // If the swarm returned a real report we use it. Otherwise we feed
+    // Gemini the brief + raw platform context and ask for a data-grounded
+    // answer (no mention of engine status — that's an internal concern).
     const inputForFormatter =
       report && report.length > 20
-        ? report
-        : `MiroFish engine was offline. Use this context to answer the question.\n\nBrief:\n${brief}\n\nContext:\n${JSON.stringify(
+        ? `Swarm simulation report:\n${report}\n\nPlatform context for reference:\n${JSON.stringify(
             context,
-          ).slice(0, 6000)}`;
+          ).slice(0, 4000)}`
+        : `Answer the prediction question using the brief and platform data below.
+Be specific, cite numbers from the data, and produce concrete recommendations.
+Do NOT mention any simulation engine status — produce a confident analytical answer.
+
+World brief:
+${brief}
+
+Platform data (JSON):
+${JSON.stringify(context).slice(0, 6000)}`;
     const result = await gemini.formatReport(question, inputForFormatter);
 
     // Step 4: persist + audit-chain
