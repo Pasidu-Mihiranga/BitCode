@@ -10,68 +10,60 @@
 import { Elysia } from "elysia";
 import { AppError, httpStatusFor, humanMessage, type ErrorCode } from "../shared/errors";
 
+/** Return a Response with Content-Type: application/json and the given status. */
+function jsonError(status: number, body: object): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 export const errorHandler = new Elysia({ name: "errorHandler" })
-  .onError(({ error, set, request, code }) => {
+  .onError({ as: "global" }, ({ error, request, code }) => {
     const requestId =
       request.headers.get("x-request-id") ??
       crypto.randomUUID().slice(0, 8);
 
     if (error instanceof AppError) {
-      set.status = error.status;
-      return {
+      return jsonError(error.status, {
         error: {
           code: error.code,
           message: error.message,
           requestId,
           ...(error.details ? { details: error.details } : {}),
         },
-      };
+      });
     }
 
-    // Elysia native code mapping (validation, not found, parse errors)
     if (code === "VALIDATION") {
-      set.status = 400;
-      return {
+      return jsonError(400, {
         error: {
           code: "VALIDATION_ERROR" satisfies ErrorCode,
           message: humanMessage("VALIDATION_ERROR"),
           requestId,
-          // surface only the field paths, never internal "expected" strings
           details: (error as any).all
             ? (error as any).all.map((e: any) => ({ path: e.path, message: e.message }))
             : undefined,
         },
-      };
+      });
     }
     if (code === "NOT_FOUND") {
-      set.status = 404;
-      return {
-        error: {
-          code: "VALIDATION_ERROR" satisfies ErrorCode,
-          message: "Route not found.",
-          requestId,
-        },
-      };
+      return jsonError(404, {
+        error: { code: "VALIDATION_ERROR" satisfies ErrorCode, message: "Route not found.", requestId },
+      });
     }
     if (code === "PARSE") {
-      set.status = 400;
-      return {
-        error: {
-          code: "VALIDATION_ERROR" satisfies ErrorCode,
-          message: "Malformed request body.",
-          requestId,
-        },
-      };
+      return jsonError(400, {
+        error: { code: "VALIDATION_ERROR" satisfies ErrorCode, message: "Malformed request body.", requestId },
+      });
     }
 
-    // Unknown — log on server, keep client message generic.
     console.error("[unhandled]", requestId, error);
-    set.status = httpStatusFor("INTERNAL_ERROR");
-    return {
+    return jsonError(httpStatusFor("INTERNAL_ERROR"), {
       error: {
         code: "INTERNAL_ERROR" satisfies ErrorCode,
         message: humanMessage("INTERNAL_ERROR"),
         requestId,
       },
-    };
+    });
   });

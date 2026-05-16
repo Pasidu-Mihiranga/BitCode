@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useMe } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { useState } from "react";
@@ -9,7 +9,6 @@ import { cn } from "@/lib/cn";
 
 export function NavBar() {
   const { me, loaded } = useMe();
-  const router = useRouter();
   const pathname = usePathname();
   const [signingOut, setSigningOut] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -21,10 +20,9 @@ export function NavBar() {
     } catch {
       // proceed even if server-side fails
     }
-    router.push("/login");
-    router.refresh();
-    setSigningOut(false);
     setMenuOpen(false);
+    // Hard navigation forces layout remount so the navbar re-reads the session.
+    window.location.href = "/login";
   }
 
   const navLink = (href: string, label: string, muted = false) => (
