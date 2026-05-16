@@ -23,8 +23,8 @@ export default function LoginPage() {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
-      // Admins go to the dashboard; customers go to the marketplace.
-      router.push(out.role === "admin" ? "/admin/dashboard" : "/events");
+      // Hard navigation so the full layout remounts and picks up the new cookie.
+      window.location.href = out.role === "admin" ? "/admin/dashboard" : "/events";
     } catch (err: any) {
       if (err instanceof ApiError && err.code === "EMAIL_NOT_VERIFIED") {
         setNeedsVerify(true);

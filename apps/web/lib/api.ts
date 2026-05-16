@@ -32,15 +32,33 @@ export async function api<T = any>(
     cache: "no-store",
   });
 
+  const contentType = res.headers.get("content-type") ?? "";
   let json: any = null;
   try {
-    json = await res.json();
-  } catch {
-    /* ignore */
+    if (contentType.includes("application/json")) {
+      json = await res.json();
+    } else {
+      // Plain-text error body — treat the text as the message.
+      const text = await res.text();
+      if (!res.ok) {
+        throw new ApiError(res.status, "UNKNOWN", text || `HTTP ${res.status}`);
+      }
+    }
+  } catch (e) {
+    if (e instanceof ApiError) throw e;
+    /* ignore parse failures */
   }
   if (!res.ok) {
     const code = (json?.error?.code as ErrorCode) ?? "UNKNOWN";
-    const message = json?.error?.message ?? humanMessage(code as any) ?? `HTTP ${res.status}`;
+    // json?.error?.message  — our structured envelope
+    // json?.message         — Elysia's raw validation format
+    // json?.summary         — Elysia TypeBox summary field
+    const message =
+      json?.error?.message ??
+      json?.message ??
+      json?.summary ??
+      humanMessage(code as any) ??
+      `HTTP ${res.status}`;
     throw new ApiError(res.status, code, message, json?.error?.details);
   }
   return json as T;
