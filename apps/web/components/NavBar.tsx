@@ -27,6 +27,8 @@ export function NavBar() {
     setMenuOpen(false);
   }
 
+  const inAdmin = pathname.startsWith("/admin");
+
   const navLink = (href: string, label: string, muted = false) => (
     <Link
       href={href}
@@ -52,35 +54,34 @@ export function NavBar() {
 
         {/* Desktop nav */}
         <nav className="hidden items-center gap-1 md:flex">
-          {navLink("/events", "Marketplace")}
+          {!inAdmin && navLink("/events", "Marketplace")}
           {!loaded ? (
             <span className="mx-2 h-10 w-20 animate-pulse rounded-2xl bg-surface shadow-neu-inset-sm" />
           ) : me ? (
             <>
-              {me.role === "admin" ? (
+              {!inAdmin &&
+                (me.role === "admin"
+                  ? navLink("/admin/dashboard", "Dashboard")
+                  : navLink("/orders", "My Orders"))}
+              {!(inAdmin && me.role === "admin") && (
                 <>
-                  {navLink("/admin/dashboard", "Dashboard")}
-                  {navLink("/admin/customers", "Customers", true)}
-                  {navLink("/admin/system-logs", "System Logs", true)}
-                </>
-              ) : (
-                navLink("/orders", "My Orders")
-              )}
-              <span className="mx-2 inline-flex items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-xs font-medium text-foreground shadow-neu-inset-sm">
-                {me.displayName}
-                {me.role === "admin" && (
-                  <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold uppercase text-white shadow-neu-sm">
-                    Admin
+                  <span className="mx-2 inline-flex items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-xs font-medium text-foreground shadow-neu-inset-sm">
+                    {me.displayName}
+                    {me.role === "admin" && (
+                      <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold uppercase text-white shadow-neu-sm">
+                        Admin
+                      </span>
+                    )}
                   </span>
-                )}
-              </span>
-              <button
-                onClick={logout}
-                disabled={signingOut}
-                className="btn-secondary text-xs"
-              >
-                {signingOut ? "…" : "Sign out"}
-              </button>
+                  <button
+                    onClick={logout}
+                    disabled={signingOut}
+                    className="btn-secondary text-xs"
+                  >
+                    {signingOut ? "…" : "Sign out"}
+                  </button>
+                </>
+              )}
             </>
           ) : (
             <>
@@ -119,22 +120,21 @@ export function NavBar() {
           aria-label="Mobile"
         >
           <div className="flex flex-col gap-2">
-            {navLink("/events", "Marketplace")}
+            {!inAdmin && navLink("/events", "Marketplace")}
             {!loaded ? null : me ? (
               <>
-                {me.role === "admin" ? (
+                {!inAdmin &&
+                  (me.role === "admin"
+                    ? navLink("/admin/dashboard", "Dashboard")
+                    : navLink("/orders", "My Orders"))}
+                {!(inAdmin && me.role === "admin") && (
                   <>
-                    {navLink("/admin/dashboard", "Dashboard")}
-                    {navLink("/admin/customers", "Customers")}
-                    {navLink("/admin/system-logs", "System Logs")}
+                    <p className="px-3 py-2 text-xs text-muted">{me.displayName}</p>
+                    <button onClick={logout} disabled={signingOut} className="btn-secondary w-full">
+                      {signingOut ? "…" : "Sign out"}
+                    </button>
                   </>
-                ) : (
-                  navLink("/orders", "My Orders")
                 )}
-                <p className="px-3 py-2 text-xs text-muted">{me.displayName}</p>
-                <button onClick={logout} disabled={signingOut} className="btn-secondary w-full">
-                  {signingOut ? "…" : "Sign out"}
-                </button>
               </>
             ) : (
               <>

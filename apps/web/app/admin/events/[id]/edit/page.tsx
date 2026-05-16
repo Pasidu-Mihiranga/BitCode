@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 
@@ -21,6 +21,7 @@ export default function EditEventPage() {
   const [evt, setEvt] = useState<Event | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [cover, setCover] = useState<File | null>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -37,6 +38,11 @@ export default function EditEventPage() {
 
   function update(idx: number, patch: Partial<Item>) {
     setItems((arr) => arr.map((x, i) => (i === idx ? { ...x, ...patch } : x)));
+  }
+
+  function clearCoverSelection() {
+    setCover(null);
+    if (coverInputRef.current) coverInputRef.current.value = "";
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -89,11 +95,20 @@ export default function EditEventPage() {
         <div>
           <label className="label">Cover photo (replace)</label>
           <input
+            ref={coverInputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp"
             disabled={!editable}
             onChange={(e) => setCover(e.target.files?.[0] ?? null)}
           />
+          {cover && editable && (
+            <p className="mt-2 text-sm text-muted">
+              Selected: {cover.name}{" "}
+              <button type="button" className="btn-ghost ml-2 inline-flex px-3 py-1 text-xs" onClick={clearCoverSelection}>
+                Clear
+              </button>
+            </p>
+          )}
         </div>
         <div className="border-t border-zinc-100 pt-4">
           <h3 className="mb-2 font-medium">Items</h3>

@@ -1,7 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, DM_Sans } from "next/font/google";
-import { NavBar } from "@/components/NavBar";
+import { AppChrome } from "@/components/AppChrome";
 
 const display = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -26,16 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${display.variable} ${sans.variable}`}>
       <body>
-        <NavBar />
-        <main className="mx-auto max-w-7xl px-4 py-8 md:px-6 md:py-12">{children}</main>
-        <footer className="mt-20 border-t border-black/5">
-          <div className="mx-auto max-w-7xl px-4 py-8 text-sm text-muted md:px-6">
-            SwiftDrop demo build · MailHog inbox at{" "}
-            <code className="rounded-xl bg-surface px-2 py-1 shadow-neu-inset-sm">
-              http://localhost:8025
-            </code>
-          </div>
-        </footer>
+        <AppChrome>{children}</AppChrome>
       </body>
     </html>
   );

@@ -33,7 +33,7 @@ export default function CustomersPage() {
 
   return (
     <section className="space-y-4">
-      <h1 className="text-2xl font-bold">Customers</h1>
+      <h1 className="page-title">Customers</h1>
       <div className="card overflow-hidden">
         <table className="w-full text-left text-sm">
           <thead className="bg-zinc-50 text-xs uppercase text-zinc-500">

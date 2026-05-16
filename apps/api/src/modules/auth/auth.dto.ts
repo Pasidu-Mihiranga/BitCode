@@ -15,3 +15,10 @@ export const ChangePasswordBody = t.Object({
   currentPassword: t.String({ minLength: 1, maxLength: 200 }),
   newPassword: t.String({ minLength: 8, maxLength: 200 }),
 });
+
+/** Admin-provisioned staff account (skips email verification). */
+export const CreateAdminBody = t.Object({
+  email: t.String({ format: "email", maxLength: 254 }),
+  displayName: t.String({ minLength: 1, maxLength: 60 }),
+  password: t.String({ minLength: 8, maxLength: 200 }),
+});

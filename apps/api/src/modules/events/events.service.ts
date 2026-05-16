@@ -140,6 +140,10 @@ export async function dashboard() {
   return repo.dashboard();
 }
 
+export async function analytics() {
+  return repo.adminAnalytics();
+}
+
 export async function deactivateCustomer(customerId: string, actor: string) {
   const u = await authRepo.findById(customerId);
   if (!u) throw new AppError("EVENT_NOT_FOUND"); // not really, but no user code

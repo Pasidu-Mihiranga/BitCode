@@ -3,7 +3,7 @@
  * Service and route layers MUST NOT import drizzle-orm directly (NFR-08).
  */
 
-import { eq, sql } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db, type DbTx } from "../../db/client";
 import { users, type NewUser, type User } from "../../db/schema";
 
@@ -20,6 +20,28 @@ export async function findByEmail(
 export async function findById(id: string, exec: Exec = db): Promise<User | null> {
   const rows = await exec.select().from(users).where(eq(users.id, id)).limit(1);
   return rows[0] ?? null;
+}
+
+export type AdminUserRow = {
+  id: string;
+  email: string;
+  displayName: string;
+  status: User["status"];
+  createdAt: Date;
+};
+
+export async function listAdmins(exec: Exec = db): Promise<AdminUserRow[]> {
+  return exec
+    .select({
+      id: users.id,
+      email: users.email,
+      displayName: users.displayName,
+      status: users.status,
+      createdAt: users.createdAt,
+    })
+    .from(users)
+    .where(eq(users.role, "admin"))
+    .orderBy(desc(users.createdAt));
 }
 
 export async function insertUser(

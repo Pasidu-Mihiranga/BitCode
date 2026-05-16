@@ -5,7 +5,10 @@
 
 import { Elysia, t } from "elysia";
 import { requireAdmin } from "../../middleware/auth";
-import { CreateEventBody, UpdateEventBody } from "./events.dto";
+import { CreateAdminBody } from "../auth/auth.dto";
+import * as authService from "../auth/auth.service";
+import { AppError } from "../../shared/errors";
+import type { CreateEventInput } from "./events.service";
 import * as service from "./events.service";
 
 async function readUpload(maybeFile: unknown): Promise<Uint8Array | null> {
@@ -16,20 +19,43 @@ async function readUpload(maybeFile: unknown): Promise<Uint8Array | null> {
   return null;
 }
 
+/** Multipart parsers may yield strings, parsed JSON arrays, or Date for datetimes. */
+function normalizeGoLiveIso(raw: unknown): string {
+  if (raw == null) return "";
+  if (typeof raw === "string") return raw;
+  if (raw instanceof Date) return raw.toISOString();
+  return String(raw);
+}
+
+function parseItemsField(raw: unknown): CreateEventInput["items"] {
+  let v: unknown = raw;
+  if (typeof raw === "string") {
+    try {
+      v = JSON.parse(raw);
+    } catch {
+      throw new AppError("VALIDATION_ERROR");
+    }
+  }
+  if (!Array.isArray(v)) throw new AppError("VALIDATION_ERROR");
+  return v as CreateEventInput["items"];
+}
+
 export const adminEventsRoutes = new Elysia({ prefix: "/admin/events" })
   .use(requireAdmin)
   // FR-E01 — create event with cover photo + items[]
   .post(
     "/",
     async ({ body, currentUser }) => {
-      const cover = await readUpload((body as any).cover);
-      // body.items + body.name + body.goLiveAt come through multipart as strings
-      const itemsRaw = (body as any).items;
-      const items =
-        typeof itemsRaw === "string" ? JSON.parse(itemsRaw) : itemsRaw;
+      const b = body as Record<string, unknown>;
+      const name = String(b.name ?? "").trim();
+      if (!name || name.length > 120) throw new AppError("VALIDATION_ERROR");
+      const goLiveAt = normalizeGoLiveIso(b.goLiveAt);
+      if (goLiveAt.length < 8) throw new AppError("VALIDATION_ERROR");
+      const items = parseItemsField(b.items);
+      const cover = await readUpload(b.cover);
       const out = await service.create({
-        name: (body as any).name,
-        goLiveAt: (body as any).goLiveAt,
+        name,
+        goLiveAt,
         items,
         coverPhotoBytes: cover,
         createdBy: currentUser.id,
@@ -37,13 +63,12 @@ export const adminEventsRoutes = new Elysia({ prefix: "/admin/events" })
       return { ok: true, event: out.event, items: out.items, cover: out.cover };
     },
     {
-      // Elysia parses multipart automatically; we keep validation lax to
-      // accept stringified items[]. Service does the real validation.
       type: "multipart/form-data",
+      // Bun/Elysia may coerce JSON-like parts to arrays/objects and dates — avoid strict t.String() (422).
       body: t.Object({
-        name: t.String({ minLength: 1, maxLength: 120 }),
-        goLiveAt: t.String({ minLength: 8 }),
-        items: t.String(),
+        name: t.Any(),
+        goLiveAt: t.Any(),
+        items: t.Any(),
         cover: t.Optional(t.Any()),
       }),
     },
@@ -52,20 +77,25 @@ export const adminEventsRoutes = new Elysia({ prefix: "/admin/events" })
   .patch(
     "/:id",
     async ({ body, params, currentUser }) => {
-      const cover = await readUpload((body as any).cover);
-      const itemsRaw = (body as any).items;
-      const items = itemsRaw
-        ? typeof itemsRaw === "string"
-          ? JSON.parse(itemsRaw)
-          : itemsRaw
-        : undefined;
+      const b = body as Record<string, unknown>;
+      const cover = await readUpload(b.cover);
+      const items =
+        b.items !== undefined && b.items !== null ? parseItemsField(b.items) : undefined;
+      const nameRaw = b.name;
+      const name =
+        nameRaw !== undefined && nameRaw !== null && String(nameRaw).trim()
+          ? String(nameRaw).trim()
+          : undefined;
+      if (name !== undefined && name.length > 120) throw new AppError("VALIDATION_ERROR");
+      let goLiveAt: string | undefined;
+      if (b.goLiveAt !== undefined && b.goLiveAt !== null) {
+        const g = normalizeGoLiveIso(b.goLiveAt);
+        if (g.length < 8) throw new AppError("VALIDATION_ERROR");
+        goLiveAt = g;
+      }
       const out = await service.update({
         eventId: params.id,
-        patch: {
-          name: (body as any).name,
-          goLiveAt: (body as any).goLiveAt,
-          items,
-        },
+        patch: { name, goLiveAt, items },
         coverPhotoBytes: cover,
         updatedBy: currentUser.id,
       });
@@ -74,9 +104,9 @@ export const adminEventsRoutes = new Elysia({ prefix: "/admin/events" })
     {
       type: "multipart/form-data",
       body: t.Object({
-        name: t.Optional(t.String()),
-        goLiveAt: t.Optional(t.String()),
-        items: t.Optional(t.String()),
+        name: t.Optional(t.Any()),
+        goLiveAt: t.Optional(t.Any()),
+        items: t.Optional(t.Any()),
         cover: t.Optional(t.Any()),
       }),
       params: t.Object({ id: t.String() }),
@@ -107,6 +137,25 @@ export const adminDashboardRoutes = new Elysia({ prefix: "/admin" })
     const rows = await service.dashboard();
     return { ok: true, events: rows };
   })
+  .get("/analytics", async () => {
+    const data = await service.analytics();
+    return { ok: true, ...data };
+  })
+  .get("/admins", async () => {
+    const admins = await authService.listAdminUsers();
+    return { ok: true, admins };
+  })
+  .post(
+    "/admins",
+    async ({ body, currentUser }) => {
+      const admin = await authService.createAdminAccount({
+        ...body,
+        createdBy: currentUser.id,
+      });
+      return { ok: true, admin };
+    },
+    { body: CreateAdminBody },
+  )
   // FR-O03 — paginated customer list
   .get(
     "/customers",

@@ -149,3 +149,48 @@ export async function applyPasswordChange(args: {
 export async function findById(userId: string) {
   return repo.findById(userId);
 }
+
+export async function listAdminUsers(): Promise<repo.AdminUserRow[]> {
+  return repo.listAdmins();
+}
+
+/** Creates an active admin login (no email verification). Audited. */
+export async function createAdminAccount(input: {
+  email: string;
+  displayName: string;
+  password: string;
+  createdBy: string;
+}): Promise<repo.AdminUserRow> {
+  assertPasswordStrength(input.password);
+  const email = normaliseEmail(input.email);
+  const existing = await repo.findByEmail(email);
+  if (existing) throw new AppError("EMAIL_ALREADY_REGISTERED");
+
+  const passwordHash = await hashPassword(input.password);
+
+  const row = await withAudit(
+    input.createdBy,
+    "admin.createAdmin",
+    (u) => ({ userId: u.id, email: u.email }),
+    async (tx) => {
+      const user = await repo.insertUser(
+        {
+          email,
+          passwordHash,
+          displayName: input.displayName.trim(),
+          role: "admin",
+          status: "active",
+        },
+        tx,
+      );
+      return {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        status: user.status,
+        createdAt: user.createdAt,
+      };
+    },
+  );
+  return row;
+}

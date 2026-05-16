@@ -57,8 +57,9 @@ const app = new Elysia()
       .use(marketplaceRoutes)
       .use(purchaseRoutes)
       .use(profileRoutes)
-      .use(adminEventsRoutes)
+      // Dashboard + analytics before /admin/events so static paths always resolve.
       .use(adminDashboardRoutes)
+      .use(adminEventsRoutes)
       .use(auditRoutes),
   )
   .use(wsHub);
