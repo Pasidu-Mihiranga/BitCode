@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { formatLkr } from "@/lib/currency";
@@ -231,11 +232,19 @@ export function AdminDashboardInner() {
                       {ev.status} · go-live {new Date(ev.goLiveAt).toLocaleString()}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {ev.status === "locked" && (
-                      <button type="button" onClick={() => force(ev.id, "force-open")} className="btn-ghost ">
-                        Force open
-                      </button>
+                      <>
+                        <Link
+                          href={`/admin/events/${ev.id}/edit`}
+                          className="btn-primary inline-flex items-center justify-center no-underline"
+                        >
+                          Edit details
+                        </Link>
+                        <button type="button" onClick={() => force(ev.id, "force-open")} className="btn-ghost ">
+                          Force open
+                        </button>
+                      </>
                     )}
                     {ev.status === "live" && (
                       <button type="button" onClick={() => force(ev.id, "force-close")} className="btn-danger">

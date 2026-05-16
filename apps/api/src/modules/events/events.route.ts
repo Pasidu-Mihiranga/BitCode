@@ -1,10 +1,12 @@
 /**
  * Admin events routes — FR-E01..E06. Multipart for cover photo + JSON body
- * for the rest. Behind `requireAdmin` (role check inside).
+ * for the rest. Each handler calls `resolveAdmin(ctx)` for FR-A04/FR-A05 to
+ * be bullet-proof against Elysia's multi-level `.use()` plugin scoping
+ * dropping the derive.
  */
 
 import { Elysia, t } from "elysia";
-import { requireAdmin } from "../../middleware/auth";
+import { jwtPlugin, resolveAdmin } from "../../middleware/auth";
 import { CreateAdminBody } from "../auth/auth.dto";
 import * as authService from "../auth/auth.service";
 import { AppError } from "../../shared/errors";
@@ -56,12 +58,13 @@ const multipartBody = {
 } as const;
 
 export const adminEventsRoutes = new Elysia({ prefix: "/admin/events" })
-  .use(requireAdmin)
+  .use(jwtPlugin)
   // FR-E01 — create event with cover photo + items[]
   .post(
     "/",
-    async ({ body, currentUser }) => {
-      const b = body as Record<string, unknown>;
+    async (ctx) => {
+      const admin = await resolveAdmin(ctx);
+      const b = ctx.body as Record<string, unknown>;
       const name = String(b.name ?? "").trim();
       if (!name || name.length > 120) throw new AppError("VALIDATION_ERROR");
       const goLiveAt = normalizeGoLiveIso(b.goLiveAt);
@@ -75,13 +78,14 @@ export const adminEventsRoutes = new Elysia({ prefix: "/admin/events" })
         items,
         itemImageBytes,
         coverPhotoBytes: cover,
-        createdBy: currentUser.id,
+        createdBy: admin.id,
       });
       return { ok: true, event: out.event, items: out.items, cover: out.cover };
     },
     {
       type: "multipart/form-data",
       // Bun/Elysia may coerce JSON-like parts to arrays/objects and dates — avoid strict t.String() (422).
+      // additionalProperties: true keeps the dynamic itemImage_N parts.
       body: t.Object(
         {
           name: t.Any(),
@@ -96,8 +100,9 @@ export const adminEventsRoutes = new Elysia({ prefix: "/admin/events" })
   // FR-E03 — patch a locked event
   .patch(
     "/:id",
-    async ({ body, params, currentUser }) => {
-      const b = body as Record<string, unknown>;
+    async (ctx) => {
+      const admin = await resolveAdmin(ctx);
+      const b = ctx.body as Record<string, unknown>;
       const cover = await readUpload(b.cover);
       const items =
         b.items !== undefined && b.items !== null ? parseItemsField(b.items) : undefined;
@@ -118,11 +123,11 @@ export const adminEventsRoutes = new Elysia({ prefix: "/admin/events" })
         itemImageBytes = await collectItemImageUploads(b, items.length);
       }
       const out = await service.update({
-        eventId: params.id,
+        eventId: ctx.params.id,
         patch: { name, goLiveAt, items },
         coverPhotoBytes: cover,
         itemImageBytes,
-        updatedBy: currentUser.id,
+        updatedBy: admin.id,
       });
       return { ok: true, event: out.event };
     },
@@ -143,53 +148,60 @@ export const adminEventsRoutes = new Elysia({ prefix: "/admin/events" })
   // FR-E04 — force open / close
   .post(
     "/:id/force-open",
-    async ({ params, currentUser }) => {
-      const out = await service.forceOpen(params.id, currentUser.id);
+    async (ctx) => {
+      const admin = await resolveAdmin(ctx);
+      const out = await service.forceOpen(ctx.params.id, admin.id);
       return { ok: true, event: out };
     },
     { params: t.Object({ id: t.String() }) },
   )
   .post(
     "/:id/force-close",
-    async ({ params, currentUser }) => {
-      const out = await service.forceClose(params.id, currentUser.id);
+    async (ctx) => {
+      const admin = await resolveAdmin(ctx);
+      const out = await service.forceClose(ctx.params.id, admin.id);
       return { ok: true, event: out };
     },
     { params: t.Object({ id: t.String() }) },
   );
 
 export const adminDashboardRoutes = new Elysia({ prefix: "/admin" })
-  .use(requireAdmin)
+  .use(jwtPlugin)
   // FR-E05 — dashboard
-  .get("/dashboard", async () => {
+  .get("/dashboard", async (ctx) => {
+    await resolveAdmin(ctx);
     const rows = await service.dashboard();
     return { ok: true, events: rows };
   })
-  .get("/analytics", async () => {
+  .get("/analytics", async (ctx) => {
+    await resolveAdmin(ctx);
     const data = await service.analytics();
     return { ok: true, ...data };
   })
-  .get("/admins", async () => {
+  .get("/admins", async (ctx) => {
+    await resolveAdmin(ctx);
     const admins = await authService.listAdminUsers();
     return { ok: true, admins };
   })
   .post(
     "/admins",
-    async ({ body, currentUser }) => {
-      const admin = await authService.createAdminAccount({
-        ...body,
-        createdBy: currentUser.id,
+    async (ctx) => {
+      const admin = await resolveAdmin(ctx);
+      const created = await authService.createAdminAccount({
+        ...(ctx.body as any),
+        createdBy: admin.id,
       });
-      return { ok: true, admin };
+      return { ok: true, admin: created };
     },
     { body: CreateAdminBody },
   )
   // FR-O03 — paginated customer list
   .get(
     "/customers",
-    async ({ query }) => {
-      const page = Math.max(1, Number(query.page ?? 1));
-      const size = Math.min(100, Math.max(1, Number(query.size ?? 20)));
+    async (ctx) => {
+      await resolveAdmin(ctx);
+      const page = Math.max(1, Number(ctx.query.page ?? 1));
+      const size = Math.min(100, Math.max(1, Number(ctx.query.size ?? 20)));
       const out = await service.listCustomers(page, size);
       return { ok: true, ...out };
     },
@@ -198,8 +210,9 @@ export const adminDashboardRoutes = new Elysia({ prefix: "/admin" })
   // FR-E06 — deactivate a customer
   .post(
     "/customers/:id/deactivate",
-    async ({ params, currentUser }) => {
-      await service.deactivateCustomer(params.id, currentUser.id);
+    async (ctx) => {
+      const admin = await resolveAdmin(ctx);
+      await service.deactivateCustomer(ctx.params.id, admin.id);
       return { ok: true };
     },
     { params: t.Object({ id: t.String() }) },

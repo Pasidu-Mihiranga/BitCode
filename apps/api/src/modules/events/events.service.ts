@@ -20,6 +20,35 @@ export interface EventItemInput {
   imageUrl?: string | null;
 }
 
+/** FR-E01 / FR-E03 — same bounds for create & edit while event is locked. */
+function normalizeAndValidateItems(raw: unknown): EventItemInput[] {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    throw new AppError("VALIDATION_ERROR", "Add at least one item.");
+  }
+  const out: EventItemInput[] = [];
+  for (const row of raw) {
+    const o = row as Record<string, unknown>;
+    const name = typeof o.name === "string" ? o.name.trim() : "";
+    if (!name || name.length > 200) throw new AppError("VALIDATION_ERROR");
+    const unitPriceCents = Number(o.unitPriceCents);
+    const stockQuantity = Number(o.stockQuantity);
+    if (!Number.isInteger(unitPriceCents) || unitPriceCents < 0 || unitPriceCents > 100_000_00) {
+      throw new AppError("VALIDATION_ERROR");
+    }
+    if (!Number.isInteger(stockQuantity) || stockQuantity < 100 || stockQuantity > 500) {
+      throw new AppError("VALIDATION_ERROR", "Each item must have stock between 100 and 500 units.");
+    }
+    out.push({
+      name,
+      unitPriceCents,
+      stockQuantity,
+      imageUrl:
+        typeof o.imageUrl === "string" || o.imageUrl === null ? (o.imageUrl as string | null) : undefined,
+    });
+  }
+  return out;
+}
+
 export interface CreateEventInput {
   name: string;
   goLiveAt: string;
@@ -63,6 +92,7 @@ async function resolveItemImageUrls(
 export async function create(input: CreateEventInput) {
   const goLiveAt = new Date(input.goLiveAt);
   if (Number.isNaN(goLiveAt.getTime())) throw new AppError("VALIDATION_ERROR");
+  const items = normalizeAndValidateItems(input.items);
 
   let sanitized: SanitizedImage | null = null;
   if (input.coverPhotoBytes && input.coverPhotoBytes.length > 0) {
@@ -74,7 +104,7 @@ export async function create(input: CreateEventInput) {
     "event.create",
     (r) => ({ eventId: r.event.id, items: r.items.map((i) => i.id) }),
     async (tx) => {
-      const imageUrls = await resolveItemImageUrls(input.items, input.itemImageBytes, "create");
+      const imageUrls = await resolveItemImageUrls(items, input.itemImageBytes, "create");
       const event = await repo.createEvent(
         {
           name: input.name.trim(),
@@ -86,7 +116,7 @@ export async function create(input: CreateEventInput) {
         tx,
       );
       const newItems = await repo.insertItems(
-        input.items.map((it, idx) => ({
+        items.map((it, idx) => ({
           eventId: event.id,
           name: it.name.trim(),
           unitPriceCents: it.unitPriceCents,
@@ -132,14 +162,11 @@ export async function update(input: {
       if (sanitized) patch.coverPhotoUrl = sanitized.url;
       const event = await repo.updateEvent(input.eventId, patch, tx);
       if (input.patch.items && input.patch.items.length > 0) {
-        const imageUrls = await resolveItemImageUrls(
-          input.patch.items,
-          input.itemImageBytes,
-          "update",
-        );
+        const items = normalizeAndValidateItems(input.patch.items);
+        const imageUrls = await resolveItemImageUrls(items, input.itemImageBytes, "update");
         await repo.deleteItemsForEvent(input.eventId, tx);
         await repo.insertItems(
-          input.patch.items.map((it, idx) => ({
+          items.map((it, idx) => ({
             eventId: input.eventId,
             name: it.name.trim(),
             unitPriceCents: it.unitPriceCents,
@@ -195,7 +222,7 @@ export async function analytics() {
 
 export async function deactivateCustomer(customerId: string, actor: string) {
   const u = await authRepo.findById(customerId);
-  if (!u) throw new AppError("EVENT_NOT_FOUND"); // not really, but no user code
+  if (!u) throw new AppError("USER_NOT_FOUND");
   if (u.role !== "customer") throw new AppError("FORBIDDEN");
   await withAudit(
     actor,

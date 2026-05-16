@@ -1,25 +1,27 @@
 /**
  * Admin audit endpoints (feat2). The Verify button calls /verify and the UI
  * shows the breaking row id if any. The list endpoint is paginated and
- * filterable.
+ * filterable. Each handler resolves admin inline (see middleware/auth.ts for
+ * why we don't rely on `.use(requireAdmin)` propagation).
  */
 
 import { Elysia, t } from "elysia";
-import { requireAdmin } from "../../middleware/auth";
+import { jwtPlugin, resolveAdmin } from "../../middleware/auth";
 import * as service from "./audit.service";
 
 export const auditRoutes = new Elysia({ prefix: "/admin/audit" })
-  .use(requireAdmin)
+  .use(jwtPlugin)
   .get(
     "/",
-    async ({ query }) => {
-      const page = Math.max(1, Number(query.page ?? 1));
-      const size = Math.min(200, Math.max(1, Number(query.size ?? 50)));
+    async (ctx) => {
+      await resolveAdmin(ctx);
+      const page = Math.max(1, Number(ctx.query.page ?? 1));
+      const size = Math.min(200, Math.max(1, Number(ctx.query.size ?? 50)));
       const out = await service.list({
         page,
         size,
-        actor: query.actor || undefined,
-        action: query.action || undefined,
+        actor: ctx.query.actor || undefined,
+        action: ctx.query.action || undefined,
       });
       return { ok: true, page, size, ...out };
     },
@@ -32,7 +34,8 @@ export const auditRoutes = new Elysia({ prefix: "/admin/audit" })
       }),
     },
   )
-  .post("/verify", async () => {
+  .post("/verify", async (ctx) => {
+    await resolveAdmin(ctx);
     const out = await service.verify();
     return { ok: true, result: out };
   });

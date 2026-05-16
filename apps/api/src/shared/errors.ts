@@ -18,6 +18,7 @@ export type ErrorCode =
   | "PASSWORD_TOO_WEAK"
   | "CURRENT_PASSWORD_WRONG"
   // events
+  | "USER_NOT_FOUND"
   | "EVENT_NOT_FOUND"
   | "EVENT_NOT_LIVE"
   | "EVENT_NOT_EDITABLE"
@@ -55,6 +56,7 @@ const HTTP_FOR_CODE: Record<ErrorCode, number> = {
   TOKEN_ALREADY_USED: 410,
   PASSWORD_TOO_WEAK: 400,
   CURRENT_PASSWORD_WRONG: 400,
+  USER_NOT_FOUND: 404,
   EVENT_NOT_FOUND: 404,
   EVENT_NOT_LIVE: 409,
   EVENT_NOT_EDITABLE: 409,
@@ -90,6 +92,7 @@ const HUMAN_MESSAGE: Record<ErrorCode, string> = {
   TOKEN_ALREADY_USED: "This verification link has already been used.",
   PASSWORD_TOO_WEAK: "Password must be at least 8 characters.",
   CURRENT_PASSWORD_WRONG: "Your current password is incorrect.",
+  USER_NOT_FOUND: "We couldn't find that user.",
   EVENT_NOT_FOUND: "We couldn't find that event.",
   EVENT_NOT_LIVE: "This event isn't open for purchases yet.",
   EVENT_NOT_EDITABLE: "Only locked events can be edited.",

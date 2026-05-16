@@ -1,0 +1,3 @@
+total=100
+2xx_count=0  4xx_count=100  5xx_count=0  429_count=96  err_count=0
+p50_ms=1499.5  p95_ms=1830.2  p99_ms=1942.2

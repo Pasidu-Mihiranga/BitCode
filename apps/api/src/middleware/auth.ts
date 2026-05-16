@@ -76,7 +76,7 @@ async function verifyClaims(claims: AuthClaims | false | undefined): Promise<Aut
  */
 export const requireAuth = new Elysia({ name: "requireAuth" })
   .use(jwtPlugin)
-  .derive({ as: "global" }, async ({ jwt, headers, cookie }) => {
+  .derive({ as: "scoped" }, async ({ jwt, headers, cookie }) => {
     const token = await readToken(headers, cookie);
     if (!token) throw new AppError("UNAUTHORIZED");
     const claims = (await jwt.verify(token)) as AuthClaims | false;
@@ -88,9 +88,47 @@ export const requireAuth = new Elysia({ name: "requireAuth" })
 
 /**
  * `requireAdmin` — chain after `requireAuth` for admin-only routes (FR-A05).
+ *
+ * Marked `scoped` so it propagates one level into the consuming instance.
+ * Routes that `.use()` requireAdmin should ALSO call `resolveAuth(ctx)` at
+ * the top of each handler — see below — because Elysia's `derive` does not
+ * reliably propagate through `.use()` chains more than one level deep.
  */
 export const requireAdmin = new Elysia({ name: "requireAdmin" })
   .use(requireAuth)
-  .onBeforeHandle(({ currentUser }) => {
-    if (currentUser.role !== "admin") throw new AppError("FORBIDDEN");
+  .onBeforeHandle({ as: "scoped" }, ({ currentUser }) => {
+    if (!currentUser || currentUser.role !== "admin") {
+      throw new AppError("FORBIDDEN");
+    }
   });
+
+/**
+ * Inline auth helpers — bullet-proof regardless of Elysia plugin scope.
+ *
+ * `requireAuth` / `requireAdmin` work for single-level `.use()` chains but
+ * the `derive` is silently dropped when chained two levels deep
+ * (e.g. `app → routeGroup → requireAdmin → requireAuth`), which silently
+ * breaks FR-A04 and FR-A05. Until Elysia's macro story stabilises, every
+ * admin handler calls `resolveAuth(ctx)` / `resolveAdmin(ctx)` directly to
+ * guarantee the JWT is verified and the role check runs on every request.
+ */
+export async function resolveAuth(ctx: {
+  jwt?: { verify: (t: string) => Promise<any> };
+  headers: HeaderBag;
+  cookie: any;
+  currentUser?: { id: string; role: "admin" | "customer"; jti: string; exp: number };
+}): Promise<{ id: string; role: "admin" | "customer"; jti: string; exp: number }> {
+  if (ctx.currentUser) return ctx.currentUser;
+  const token = await readToken(ctx.headers, ctx.cookie);
+  if (!token) throw new AppError("UNAUTHORIZED");
+  if (!ctx.jwt) throw new AppError("UNAUTHORIZED");
+  const claims = (await ctx.jwt.verify(token)) as AuthClaims | false;
+  const verified = await verifyClaims(claims as AuthClaims | false);
+  return { id: verified.sub, role: verified.role, jti: verified.jti, exp: verified.exp };
+}
+
+export async function resolveAdmin(ctx: Parameters<typeof resolveAuth>[0]) {
+  const user = await resolveAuth(ctx);
+  if (user.role !== "admin") throw new AppError("FORBIDDEN");
+  return user;
+}

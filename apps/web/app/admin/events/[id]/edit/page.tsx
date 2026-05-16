@@ -2,7 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
+
+/** Display go-live time in `<input type="datetime-local"/>` local zone (not UTC). */
+function dateToDatetimeLocal(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 type Item = {
   id: string;
@@ -32,15 +40,36 @@ export default function EditEventPage() {
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    setInitError(null);
     (async () => {
-      const r = await api<{ ok: true; event: Event }>(`/api/events/${id}`);
-      setEvt(r.event);
-      setItems(r.event.items);
-      setItemFiles(r.event.items.map(() => null));
+      try {
+        const r = await api<{ ok: true; event: Event }>(`/api/events/${id}`);
+        if (!cancelled) {
+          setEvt(r.event);
+          setItems(r.event.items);
+          setItemFiles(r.event.items.map(() => null));
+        }
+      } catch (e) {
+        if (cancelled) return;
+        if (e instanceof ApiError && e.code === "UNAUTHORIZED") {
+          router.replace("/login");
+          return;
+        }
+        const msg =
+          e instanceof ApiError && e.code === "EVENT_NOT_FOUND"
+            ? "Event not found."
+            : "Could not load this event.";
+        setInitError(msg);
+      }
     })();
-  }, [id]);
+    return () => {
+      cancelled = true;
+    };
+  }, [id, router]);
 
   useEffect(() => {
     const urls = itemFiles.map((f) => (f ? URL.createObjectURL(f) : null));
@@ -50,7 +79,15 @@ export default function EditEventPage() {
     };
   }, [itemFiles]);
 
+  if (initError) {
+    return (
+      <section className="mx-auto max-w-2xl">
+        <p className="text-sm text-rose-600">{initError}</p>
+      </section>
+    );
+  }
   if (!evt) return <p>Loading…</p>;
+
   const editable = evt.status === "locked";
 
   function update(idx: number, patch: Partial<Item>) {
@@ -72,9 +109,19 @@ export default function EditEventPage() {
     setError(null);
     try {
       const fd = new FormData();
-      fd.append("name", evt!.name);
+      fd.append("name", evt!.name.trim());
       fd.append("goLiveAt", new Date(evt!.goLiveAt).toISOString());
-      fd.append("items", JSON.stringify(items));
+      fd.append(
+        "items",
+        JSON.stringify(
+          items.map(({ name, unitPriceCents, stockQuantity, imageUrl }) => ({
+            name,
+            unitPriceCents,
+            stockQuantity,
+            ...(imageUrl != null ? { imageUrl } : {}),
+          })),
+        ),
+      );
       itemFiles.forEach((file, idx) => {
         if (file) fd.append(`itemImage_${idx}`, file);
       });
@@ -112,8 +159,13 @@ export default function EditEventPage() {
             className="input"
             type="datetime-local"
             disabled={!editable}
-            value={new Date(evt.goLiveAt).toISOString().slice(0, 16)}
-            onChange={(e) => setEvt({ ...evt, goLiveAt: new Date(e.target.value).toISOString() })}
+            value={dateToDatetimeLocal(evt.goLiveAt)}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (!raw) return;
+              const d = new Date(raw);
+              if (!Number.isNaN(d.getTime())) setEvt({ ...evt, goLiveAt: d.toISOString() });
+            }}
           />
         </div>
         <div>
@@ -196,6 +248,7 @@ export default function EditEventPage() {
                 />
               </div>
               <div className="md:col-span-3">
+                <label className="label">Stock (100–500)</label>
                 <input
                   className="input"
                   type="number"

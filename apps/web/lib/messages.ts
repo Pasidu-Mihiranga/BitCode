@@ -16,6 +16,7 @@ export type ErrorCode =
   | "TOKEN_ALREADY_USED"
   | "PASSWORD_TOO_WEAK"
   | "CURRENT_PASSWORD_WRONG"
+  | "USER_NOT_FOUND"
   | "EVENT_NOT_FOUND"
   | "EVENT_NOT_LIVE"
   | "EVENT_NOT_EDITABLE"
@@ -50,6 +51,7 @@ const HUMAN: Record<ErrorCode, string> = {
   TOKEN_ALREADY_USED: "This verification link has already been used.",
   PASSWORD_TOO_WEAK: "Password must be at least 8 characters.",
   CURRENT_PASSWORD_WRONG: "Your current password is incorrect.",
+  USER_NOT_FOUND: "We couldn't find that user.",
   EVENT_NOT_FOUND: "We couldn't find that event.",
   EVENT_NOT_LIVE: "This event isn't open for purchases yet.",
   EVENT_NOT_EDITABLE: "Only locked events can be edited.",
