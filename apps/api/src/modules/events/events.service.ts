@@ -12,12 +12,52 @@ import { broadcastEvent } from "../../ws/hub";
 import * as repo from "./events.repo";
 import * as authRepo from "../auth/auth.repo";
 
+export interface EventItemInput {
+  name: string;
+  unitPriceCents: number;
+  stockQuantity: number;
+  /** Only used on update when no new file is uploaded — must be a prior /uploads/* path. */
+  imageUrl?: string | null;
+}
+
 export interface CreateEventInput {
   name: string;
   goLiveAt: string;
-  items: { name: string; unitPriceCents: number; stockQuantity: number }[];
+  items: EventItemInput[];
   coverPhotoBytes?: Uint8Array | null;
+  /** Parallel to items[i]; new upload bytes or null to skip */
+  itemImageBytes?: (Uint8Array | null)[];
   createdBy: string;
+}
+
+const SAFE_UPLOAD_URL = /^\/uploads\/[a-f0-9-]{36}\.jpe?g$/i;
+
+function safeReuseImageUrl(raw: unknown): string | null {
+  if (raw == null || raw === "") return null;
+  if (typeof raw !== "string") return null;
+  return SAFE_UPLOAD_URL.test(raw) ? raw : null;
+}
+
+async function resolveItemImageUrls(
+  items: EventItemInput[],
+  uploads: (Uint8Array | null)[] | undefined,
+  mode: "create" | "update",
+): Promise<(string | null)[]> {
+  const out: (string | null)[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const bytes = uploads?.[i];
+    if (bytes && bytes.length > 0) {
+      const sanitized = await sanitizeAndStoreImage(bytes);
+      out.push(sanitized.url);
+      continue;
+    }
+    if (mode === "update") {
+      out.push(safeReuseImageUrl(items[i]!.imageUrl));
+      continue;
+    }
+    out.push(null);
+  }
+  return out;
 }
 
 export async function create(input: CreateEventInput) {
@@ -34,6 +74,7 @@ export async function create(input: CreateEventInput) {
     "event.create",
     (r) => ({ eventId: r.event.id, items: r.items.map((i) => i.id) }),
     async (tx) => {
+      const imageUrls = await resolveItemImageUrls(input.items, input.itemImageBytes, "create");
       const event = await repo.createEvent(
         {
           name: input.name.trim(),
@@ -44,16 +85,17 @@ export async function create(input: CreateEventInput) {
         },
         tx,
       );
-      const items = await repo.insertItems(
-        input.items.map((i) => ({
+      const newItems = await repo.insertItems(
+        input.items.map((it, idx) => ({
           eventId: event.id,
-          name: i.name.trim(),
-          unitPriceCents: i.unitPriceCents,
-          stockQuantity: i.stockQuantity,
+          name: it.name.trim(),
+          unitPriceCents: it.unitPriceCents,
+          stockQuantity: it.stockQuantity,
+          imageUrl: imageUrls[idx] ?? null,
         })),
         tx,
       );
-      return { event, items };
+      return { event, items: newItems };
     },
   );
   return { event: created.event, items: created.items, cover: sanitized };
@@ -61,8 +103,9 @@ export async function create(input: CreateEventInput) {
 
 export async function update(input: {
   eventId: string;
-  patch: { name?: string; goLiveAt?: string; items?: CreateEventInput["items"] };
+  patch: { name?: string; goLiveAt?: string; items?: EventItemInput[] };
   coverPhotoBytes?: Uint8Array | null;
+  itemImageBytes?: (Uint8Array | null)[];
   updatedBy: string;
 }) {
   const current = await repo.findEvent(input.eventId);
@@ -89,13 +132,19 @@ export async function update(input: {
       if (sanitized) patch.coverPhotoUrl = sanitized.url;
       const event = await repo.updateEvent(input.eventId, patch, tx);
       if (input.patch.items && input.patch.items.length > 0) {
+        const imageUrls = await resolveItemImageUrls(
+          input.patch.items,
+          input.itemImageBytes,
+          "update",
+        );
         await repo.deleteItemsForEvent(input.eventId, tx);
         await repo.insertItems(
-          input.patch.items.map((i) => ({
+          input.patch.items.map((it, idx) => ({
             eventId: input.eventId,
-            name: i.name.trim(),
-            unitPriceCents: i.unitPriceCents,
-            stockQuantity: i.stockQuantity,
+            name: it.name.trim(),
+            unitPriceCents: it.unitPriceCents,
+            stockQuantity: it.stockQuantity,
+            imageUrl: imageUrls[idx] ?? null,
           })),
           tx,
         );

@@ -106,6 +106,7 @@ export const items = pgTable(
       .notNull()
       .references(() => events.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    imageUrl: text("image_url"),
     unitPriceCents: integer("unit_price_cents").notNull(),
     stockQuantity: integer("stock_quantity").notNull(),
     reservedStock: integer("reserved_stock").notNull().default(0),

@@ -40,6 +40,21 @@ function parseItemsField(raw: unknown): CreateEventInput["items"] {
   return v as CreateEventInput["items"];
 }
 
+async function collectItemImageUploads(
+  body: Record<string, unknown>,
+  count: number,
+): Promise<(Uint8Array | null)[]> {
+  const out: (Uint8Array | null)[] = [];
+  for (let i = 0; i < count; i++) {
+    out.push(await readUpload(body[`itemImage_${i}`]));
+  }
+  return out;
+}
+
+const multipartBody = {
+  additionalProperties: true,
+} as const;
+
 export const adminEventsRoutes = new Elysia({ prefix: "/admin/events" })
   .use(requireAdmin)
   // FR-E01 — create event with cover photo + items[]
@@ -52,11 +67,13 @@ export const adminEventsRoutes = new Elysia({ prefix: "/admin/events" })
       const goLiveAt = normalizeGoLiveIso(b.goLiveAt);
       if (goLiveAt.length < 8) throw new AppError("VALIDATION_ERROR");
       const items = parseItemsField(b.items);
+      const itemImageBytes = await collectItemImageUploads(b, items.length);
       const cover = await readUpload(b.cover);
       const out = await service.create({
         name,
         goLiveAt,
         items,
+        itemImageBytes,
         coverPhotoBytes: cover,
         createdBy: currentUser.id,
       });
@@ -65,12 +82,15 @@ export const adminEventsRoutes = new Elysia({ prefix: "/admin/events" })
     {
       type: "multipart/form-data",
       // Bun/Elysia may coerce JSON-like parts to arrays/objects and dates — avoid strict t.String() (422).
-      body: t.Object({
-        name: t.Any(),
-        goLiveAt: t.Any(),
-        items: t.Any(),
-        cover: t.Optional(t.Any()),
-      }),
+      body: t.Object(
+        {
+          name: t.Any(),
+          goLiveAt: t.Any(),
+          items: t.Any(),
+          cover: t.Optional(t.Any()),
+        },
+        multipartBody,
+      ),
     },
   )
   // FR-E03 — patch a locked event
@@ -93,22 +113,30 @@ export const adminEventsRoutes = new Elysia({ prefix: "/admin/events" })
         if (g.length < 8) throw new AppError("VALIDATION_ERROR");
         goLiveAt = g;
       }
+      let itemImageBytes: (Uint8Array | null)[] | undefined;
+      if (items !== undefined) {
+        itemImageBytes = await collectItemImageUploads(b, items.length);
+      }
       const out = await service.update({
         eventId: params.id,
         patch: { name, goLiveAt, items },
         coverPhotoBytes: cover,
+        itemImageBytes,
         updatedBy: currentUser.id,
       });
       return { ok: true, event: out.event };
     },
     {
       type: "multipart/form-data",
-      body: t.Object({
-        name: t.Optional(t.Any()),
-        goLiveAt: t.Optional(t.Any()),
-        items: t.Optional(t.Any()),
-        cover: t.Optional(t.Any()),
-      }),
+      body: t.Object(
+        {
+          name: t.Optional(t.Any()),
+          goLiveAt: t.Optional(t.Any()),
+          items: t.Optional(t.Any()),
+          cover: t.Optional(t.Any()),
+        },
+        multipartBody,
+      ),
       params: t.Object({ id: t.String() }),
     },
   )

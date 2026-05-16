@@ -52,7 +52,6 @@ export function NavBar() {
 
         {/* Desktop nav */}
         <nav className="hidden items-center gap-1 md:flex">
-          {!inAdmin && navLink("/events", "Marketplace")}
           {!loaded ? (
             <span className="mx-2 h-10 w-20 animate-pulse rounded-2xl bg-surface shadow-neu-inset-sm" />
           ) : me ? (
@@ -118,7 +117,6 @@ export function NavBar() {
           aria-label="Mobile"
         >
           <div className="flex flex-col gap-2">
-            {!inAdmin && navLink("/events", "Marketplace")}
             {!loaded ? null : me ? (
               <>
                 {!inAdmin &&

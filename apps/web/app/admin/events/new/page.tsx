@@ -15,6 +15,8 @@ export default function NewEventPage() {
   const [items, setItems] = useState<ItemDraft[]>([
     { name: "", unitPriceCents: 0, stockQuantity: 100 },
   ]);
+  const [itemFiles, setItemFiles] = useState<(File | null)[]>([null]);
+  const [itemPreviewUrls, setItemPreviewUrls] = useState<(string | null)[]>([null]);
   const [cover, setCover] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -31,16 +33,30 @@ export default function NewEventPage() {
     return () => URL.revokeObjectURL(url);
   }, [cover]);
 
+  useEffect(() => {
+    const urls = itemFiles.map((f) => (f ? URL.createObjectURL(f) : null));
+    setItemPreviewUrls(urls);
+    return () => {
+      urls.forEach((u) => u && URL.revokeObjectURL(u));
+    };
+  }, [itemFiles]);
+
   function updateItem(idx: number, patch: Partial<ItemDraft>) {
     setItems((arr) => arr.map((x, i) => (i === idx ? { ...x, ...patch } : x)));
   }
 
   function addItem() {
     setItems((a) => [...a, { name: "", unitPriceCents: 0, stockQuantity: 100 }]);
+    setItemFiles((f) => [...f, null]);
   }
 
   function removeItem(idx: number) {
     setItems((a) => (a.length <= 1 ? a : a.filter((_, i) => i !== idx)));
+    setItemFiles((f) => (f.length <= 1 ? f : f.filter((_, i) => i !== idx)));
+  }
+
+  function setItemImageAt(idx: number, file: File | null) {
+    setItemFiles((prev) => prev.map((x, i) => (i === idx ? file : x)));
   }
 
   function clearCover() {
@@ -57,6 +73,9 @@ export default function NewEventPage() {
       fd.append("name", name);
       fd.append("goLiveAt", new Date(goLiveLocal).toISOString());
       fd.append("items", JSON.stringify(items));
+      itemFiles.forEach((file, idx) => {
+        if (file) fd.append(`itemImage_${idx}`, file);
+      });
       if (cover) fd.append("cover", cover);
       await api("/api/admin/events", { method: "POST", body: fd });
       router.push("/admin/dashboard");
@@ -174,6 +193,41 @@ export default function NewEventPage() {
                   )}
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+                  <div className="md:col-span-12">
+                    <FormField
+                      label="Item photo"
+                      hint="Optional. JPEG, PNG, or WebP — same limits as cover. Shown on the product card in the marketplace."
+                    >
+                      <div className="flex flex-wrap items-start gap-4">
+                        <label className="file-drop max-w-xs flex-1">
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={(e) => setItemImageAt(idx, e.target.files?.[0] ?? null)}
+                          />
+                          <span className="text-sm font-semibold text-foreground">
+                            {itemFiles[idx] ? itemFiles[idx]!.name : "Optional image"}
+                          </span>
+                          <span className="text-xs text-muted">Click to browse</span>
+                        </label>
+                        {itemPreviewUrls[idx] ? (
+                          <div className="flex flex-col gap-2">
+                            <div className="media-well h-24 w-24 shrink-0 rounded-lg">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={itemPreviewUrls[idx]!} alt="" className="h-full w-full object-cover" />
+                            </div>
+                            <button
+                              type="button"
+                              className="btn-ghost px-2 py-1 text-xs"
+                              onClick={() => setItemImageAt(idx, null)}
+                            >
+                              Remove image
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    </FormField>
+                  </div>
                   <div className="md:col-span-6">
                     <FormField label="Name">
                       <input

@@ -103,7 +103,7 @@ export function AdminSidebar() {
 
       <footer className="mt-6 border-t border-black/5 pt-5 lg:mt-auto">
         <div className="admin-sidebar-footer">
-          <Link href="/events" className="btn-secondary w-full justify-center text-center text-sm">
+          <Link href="/" className="btn-secondary w-full justify-center text-center text-sm">
             ← Back to site
           </Link>
           <button

@@ -24,7 +24,7 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
       // Hard navigation so the full layout remounts and picks up the new cookie.
-      window.location.href = out.role === "admin" ? "/admin/dashboard" : "/events";
+      window.location.href = out.role === "admin" ? "/admin/dashboard" : "/";
     } catch (err: any) {
       if (err instanceof ApiError && err.code === "EMAIL_NOT_VERIFIED") {
         setNeedsVerify(true);

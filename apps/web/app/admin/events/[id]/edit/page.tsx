@@ -4,7 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 
-type Item = { id: string; name: string; unitPriceCents: number; stockQuantity: number };
+type Item = {
+  id: string;
+  name: string;
+  unitPriceCents: number;
+  stockQuantity: number;
+  imageUrl?: string | null;
+};
 
 type Event = {
   id: string;
@@ -21,6 +27,8 @@ export default function EditEventPage() {
   const [evt, setEvt] = useState<Event | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [cover, setCover] = useState<File | null>(null);
+  const [itemFiles, setItemFiles] = useState<(File | null)[]>([]);
+  const [itemPreviewUrls, setItemPreviewUrls] = useState<(string | null)[]>([]);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -30,14 +38,27 @@ export default function EditEventPage() {
       const r = await api<{ ok: true; event: Event }>(`/api/events/${id}`);
       setEvt(r.event);
       setItems(r.event.items);
+      setItemFiles(r.event.items.map(() => null));
     })();
   }, [id]);
+
+  useEffect(() => {
+    const urls = itemFiles.map((f) => (f ? URL.createObjectURL(f) : null));
+    setItemPreviewUrls(urls);
+    return () => {
+      urls.forEach((u) => u && URL.revokeObjectURL(u));
+    };
+  }, [itemFiles]);
 
   if (!evt) return <p>Loading…</p>;
   const editable = evt.status === "locked";
 
   function update(idx: number, patch: Partial<Item>) {
     setItems((arr) => arr.map((x, i) => (i === idx ? { ...x, ...patch } : x)));
+  }
+
+  function setItemImageAt(idx: number, file: File | null) {
+    setItemFiles((prev) => prev.map((x, i) => (i === idx ? file : x)));
   }
 
   function clearCoverSelection() {
@@ -54,6 +75,9 @@ export default function EditEventPage() {
       fd.append("name", evt!.name);
       fd.append("goLiveAt", new Date(evt!.goLiveAt).toISOString());
       fd.append("items", JSON.stringify(items));
+      itemFiles.forEach((file, idx) => {
+        if (file) fd.append(`itemImage_${idx}`, file);
+      });
       if (cover) fd.append("cover", cover);
       await api(`/api/admin/events/${id}`, { method: "PATCH", body: fd });
       router.push("/admin/dashboard");
@@ -112,8 +136,47 @@ export default function EditEventPage() {
         </div>
         <div className="border-t border-zinc-100 pt-4">
           <h3 className="mb-2 font-medium">Items</h3>
-          {items.map((it, idx) => (
-            <div key={it.id} className="grid grid-cols-1 gap-3 border-t border-zinc-50 py-3 md:grid-cols-12">
+          {items.map((it, idx) => {
+            const thumb = itemPreviewUrls[idx] ?? it.imageUrl ?? null;
+            return (
+            <div key={it.id} className="space-y-3 border-t border-zinc-50 py-3">
+              {thumb ? (
+                <div className="flex items-start gap-4">
+                  <div className="media-well h-24 w-24 shrink-0 rounded-lg">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={thumb} alt="" className="h-full w-full object-cover" />
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <label className="label">Replace item photo</label>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      disabled={!editable}
+                      onChange={(e) => setItemImageAt(idx, e.target.files?.[0] ?? null)}
+                    />
+                    {itemFiles[idx] && editable ? (
+                      <button
+                        type="button"
+                        className="btn-ghost inline-flex px-3 py-1 text-xs"
+                        onClick={() => setItemImageAt(idx, null)}
+                      >
+                        Cancel new upload
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="label">Item photo (optional)</label>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={!editable}
+                    onChange={(e) => setItemImageAt(idx, e.target.files?.[0] ?? null)}
+                  />
+                </div>
+              )}
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
               <div className="md:col-span-6">
                 <input
                   className="input"
@@ -144,7 +207,9 @@ export default function EditEventPage() {
                 />
               </div>
             </div>
-          ))}
+            </div>
+            );
+          })}
         </div>
         {error && <p className="text-sm text-rose-600">{error}</p>}
         <button type="submit" className="btn-primary w-full" disabled={!editable || busy}>

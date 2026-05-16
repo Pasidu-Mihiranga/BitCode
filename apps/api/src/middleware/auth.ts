@@ -76,7 +76,7 @@ async function verifyClaims(claims: AuthClaims | false | undefined): Promise<Aut
  */
 export const requireAuth = new Elysia({ name: "requireAuth" })
   .use(jwtPlugin)
-  .derive({ as: "scoped" }, async ({ jwt, headers, cookie }) => {
+  .derive({ as: "global" }, async ({ jwt, headers, cookie }) => {
     const token = await readToken(headers, cookie);
     if (!token) throw new AppError("UNAUTHORIZED");
     const claims = (await jwt.verify(token)) as AuthClaims | false;

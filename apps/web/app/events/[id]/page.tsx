@@ -16,6 +16,7 @@ type Item = {
   reservedStock: number;
   soldCount: number;
   available: number;
+  imageUrl?: string | null;
 };
 type Event = {
   id: string;
@@ -128,7 +129,18 @@ export default function EventDetailPage() {
             const soldOut = liveAvailable <= 0 || statusNow === "sold_out";
             const canBuy = statusNow === "live" && !soldOut && buying !== i.id;
             return (
-              <div key={i.id} className="card p-4">
+              <div key={i.id} className="card overflow-hidden p-0">
+                {i.imageUrl ? (
+                  <div className="media-well relative aspect-[4/3] max-h-48">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={i.imageUrl}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  </div>
+                ) : null}
+                <div className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="font-semibold">{i.name}</h3>
@@ -159,6 +171,7 @@ export default function EventDetailPage() {
                       ? "Sold out"
                       : "Buy now"}
                   </button>
+                </div>
                 </div>
               </div>
             );
