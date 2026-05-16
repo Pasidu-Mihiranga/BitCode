@@ -228,6 +228,52 @@ export const emailVerifications = pgTable(
   }),
 );
 
+// ===== Predictions (MiroFish swarm-sim microservice) =====
+export const predictionQuestionEnum = pgEnum("prediction_question", [
+  "best_go_live_time",
+  "sell_through",
+  "price_sensitivity",
+  "conversion",
+  "anomaly_summary",
+  "next_drop",
+]);
+export const predictionStatusEnum = pgEnum("prediction_status", [
+  "queued",
+  "running_sim",
+  "analysing",
+  "done",
+  "failed",
+]);
+
+export const predictionRuns = pgTable(
+  "prediction_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    question: predictionQuestionEnum("question").notNull(),
+    status: predictionStatusEnum("status").notNull().default("queued"),
+    requestedBy: uuid("requested_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "set null" }),
+    eventId: uuid("event_id").references(() => events.id, { onDelete: "set null" }),
+    params: jsonb("params").notNull().default({}),
+    miroSimId: text("miro_sim_id").notNull(),
+    miroRunId: text("miro_run_id"),
+    brief: text("brief"),
+    rawReport: jsonb("raw_report"),
+    resultJson: jsonb("result_json"),
+    errorCode: text("error_code"),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+  },
+  (t) => ({
+    statusIdx: index("prediction_runs_status_idx").on(t.status),
+    startedIdx: index("prediction_runs_started_idx").on(t.startedAt),
+  }),
+);
+
+export type PredictionRun = typeof predictionRuns.$inferSelect;
+export type NewPredictionRun = typeof predictionRuns.$inferInsert;
+
 // ===== Audit log (feat2 — SHA-256 hash chain) =====
 export const auditLog = pgTable(
   "audit_log",

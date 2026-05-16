@@ -1,5 +1,6 @@
 /** Elysia context headers are a record; `request.headers` is a Web `Headers`. */
 export type HeaderSource = Headers | Record<string, string | undefined>;
+export type HeaderBag = HeaderSource;
 
 export function getHeader(headers: HeaderSource, name: string): string | null {
   if (headers instanceof Headers) {
@@ -13,3 +14,5 @@ export function getHeader(headers: HeaderSource, name: string): string | null {
   }
   return null;
 }
+
+export const headerGet = getHeader;
