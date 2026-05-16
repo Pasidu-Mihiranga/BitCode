@@ -3,44 +3,163 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
+  --surface: #e0e5ec;
+  --foreground: #171717;
+  --muted: #6b7280;
+  --accent: #f97316;
+  --accent-light: #fb923c;
+  --accent-dark: #ea580c;
+  --shadow-dark: rgb(163 177 198 / 0.65);
+  --shadow-light: rgb(255 255 255 / 0.55);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  @apply bg-zinc-50 text-zinc-900 antialiased;
+  @apply min-h-screen bg-surface font-sans text-foreground antialiased;
   font-feature-settings: "rlig" 1, "calt" 1;
 }
 
 @layer components {
+  .link-nav {
+    @apply rounded-xl px-3 py-2 text-sm font-medium text-muted transition-all duration-neu ease-out
+      hover:text-foreground focus-visible:outline-none focus-visible:ring-2
+      focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface;
+  }
+
+  .link-nav-active {
+    @apply link-nav bg-surface text-foreground shadow-neu-inset-sm;
+  }
+
   .btn {
-    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 font-medium transition disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex min-h-12 min-w-[2.75rem] items-center justify-center rounded-2xl px-5 py-2.5
+      text-sm font-semibold transition-all duration-neu ease-out
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+      focus-visible:ring-offset-2 focus-visible:ring-offset-surface
+      disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:translate-y-0;
   }
+
   .btn-primary {
-    @apply btn bg-brand text-white hover:bg-brand-dark;
+    @apply btn bg-accent text-white shadow-neu-accent
+      hover:-translate-y-px hover:shadow-neu-accent-hover
+      active:translate-y-0.5 active:shadow-[inset_4px_4px_8px_rgba(154,52,18,0.45),inset_-4px_-4px_8px_rgba(255,237,213,0.35)];
   }
+
   .btn-secondary {
-    @apply btn bg-zinc-200 hover:bg-zinc-300;
+    @apply btn bg-surface text-foreground shadow-neu-sm
+      hover:-translate-y-px hover:shadow-neu-hover
+      active:translate-y-0.5 active:shadow-neu-inset-sm;
   }
+
   .btn-ghost {
-    @apply btn bg-transparent hover:bg-zinc-100;
+    @apply btn bg-surface text-muted shadow-neu-inset-sm
+      hover:text-foreground hover:shadow-neu-inset
+      active:shadow-neu-inset-deep;
   }
+
   .btn-danger {
-    @apply btn bg-rose-600 text-white hover:bg-rose-700;
+    @apply btn bg-black text-white shadow-neu-sm
+      hover:-translate-y-px hover:shadow-neu-hover
+      active:translate-y-0.5 active:shadow-neu-inset-sm;
   }
+
   .card {
-    @apply rounded-xl border border-zinc-200 bg-white shadow-sm;
+    @apply rounded-neu bg-surface p-6 shadow-neu transition-all duration-neu ease-out;
   }
+
+  .card-interactive {
+    @apply card hover:-translate-y-0.5 hover:shadow-neu-hover;
+  }
+
+  .card-inset {
+    @apply rounded-neu-sm bg-surface shadow-neu-inset;
+  }
+
   .input {
-    @apply w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 outline-none focus:border-brand focus:ring-2 focus:ring-brand/20;
+    @apply w-full rounded-2xl border-0 bg-surface px-4 py-3 text-foreground shadow-neu-inset
+      outline-none transition-all duration-neu ease-out
+      placeholder:text-placeholder
+      focus:shadow-neu-inset-deep focus:ring-2 focus:ring-accent focus:ring-offset-2
+      focus:ring-offset-surface;
   }
+
   .label {
-    @apply mb-1 block text-sm font-medium text-zinc-700;
+    @apply mb-2 block text-sm font-medium text-foreground;
   }
+
+  .icon-well {
+    @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface
+      text-accent shadow-neu-inset-deep;
+  }
+
+  .icon-well-dark {
+    @apply icon-well bg-accent text-white shadow-neu-accent;
+  }
+
   .badge {
-    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
+    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide;
   }
-  .badge-locked { @apply badge bg-zinc-200 text-zinc-700; }
-  .badge-live { @apply badge bg-emerald-100 text-emerald-700; }
-  .badge-closed { @apply badge bg-zinc-100 text-zinc-500; }
-  .badge-sold-out { @apply badge bg-rose-100 text-rose-700; }
+
+  .badge-locked {
+    @apply badge bg-surface text-muted shadow-neu-inset-sm;
+  }
+
+  .badge-live {
+    @apply badge bg-accent-soft text-accent-dark shadow-neu-inset-sm;
+  }
+
+  .badge-closed {
+    @apply badge bg-surface text-muted shadow-neu-inset-sm;
+  }
+
+  .badge-sold-out {
+    @apply badge bg-black text-white shadow-neu-sm;
+  }
+
+  .media-well {
+    @apply aspect-video overflow-hidden rounded-neu-sm bg-surface shadow-neu-inset-deep;
+  }
+
+  .table-wrap {
+    @apply overflow-hidden rounded-neu-sm shadow-neu-inset-deep;
+  }
+
+  .table-neu {
+    @apply w-full text-left text-sm;
+  }
+
+  .table-neu thead {
+    @apply bg-surface text-xs font-semibold uppercase tracking-wider text-muted;
+  }
+
+  .table-neu th {
+    @apply px-4 py-3;
+  }
+
+  .table-neu td {
+    @apply border-t border-black/5 px-4 py-3;
+  }
+
+  .alert-error {
+    @apply rounded-2xl bg-surface px-4 py-3 text-sm text-accent-dark shadow-neu-inset-sm;
+  }
+
+  .alert-success {
+    @apply rounded-2xl bg-surface px-4 py-3 text-sm text-success shadow-neu-inset-sm;
+  }
+
+  .demo-panel {
+    @apply rounded-neu-sm bg-surface p-4 text-xs text-muted shadow-neu-inset;
+  }
+
+  .page-title {
+    @apply font-display text-3xl font-extrabold tracking-tight text-foreground md:text-4xl;
+  }
+
+  .section-title {
+    @apply font-display text-xl font-bold tracking-tight text-foreground;
+  }
 }

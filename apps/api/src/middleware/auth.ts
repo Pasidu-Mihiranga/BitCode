@@ -13,6 +13,7 @@ import { Elysia } from "elysia";
 import { jwt } from "@elysiajs/jwt";
 import { redis, RedisKeys } from "../shared/redis";
 import { AppError } from "../shared/errors";
+import { getHeader, type HeaderSource } from "../shared/headers";
 
 const JWT_SECRET = process.env.JWT_SECRET ?? "dev-only-secret-change-me-please";
 const JWT_TTL = Number(process.env.JWT_TTL_SECONDS ?? 3600);
@@ -33,8 +34,8 @@ export const jwtPlugin = jwt({
   alg: "HS256",
 });
 
-async function readToken(headers: Headers, cookie: any): Promise<string | null> {
-  const auth = headers.get("authorization");
+async function readToken(headers: HeaderSource, cookie: any): Promise<string | null> {
+  const auth = getHeader(headers, "authorization");
   if (auth && auth.toLowerCase().startsWith("bearer ")) return auth.slice(7).trim();
   const c = cookie?.[SESSION_COOKIE]?.value;
   return c ?? null;

@@ -2,7 +2,7 @@
  * Events repo — events + items reads/writes for admin & dashboard.
  */
 
-import { and, eq, sql, desc, lte, gte, count } from "drizzle-orm";
+import { and, eq, sql, desc, lte, gte, count, inArray } from "drizzle-orm";
 import { db, type DbTx } from "../../db/client";
 import {
   events,
@@ -39,7 +39,7 @@ export async function listEvents(
   const its = await exec
     .select()
     .from(items)
-    .where(sql`event_id = ANY(${ids})`);
+    .where(inArray(items.eventId, ids));
   return evts.map((e) => ({
     ...e,
     items: its.filter((i) => i.eventId === e.id),

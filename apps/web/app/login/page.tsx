@@ -54,8 +54,8 @@ export default function LoginPage() {
   return (
     <div className="mx-auto max-w-md space-y-4">
       <div className="card p-6">
-        <h1 className="text-xl font-semibold">Welcome back</h1>
-        <p className="mt-1 text-sm text-zinc-500">
+        <h1 className="section-title">Welcome back</h1>
+        <p className="mt-1 text-sm text-muted">
           Both customers and admins use this login page.
         </p>
 
@@ -83,7 +83,7 @@ export default function LoginPage() {
             />
           </div>
 
-          {error && <p className="text-sm text-rose-600">{error}</p>}
+          {error && <p className="alert-error">{error}</p>}
 
           {needsVerify && (
             <button
@@ -101,17 +101,17 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-4 text-center text-sm text-zinc-500">
+        <p className="mt-4 text-center text-sm text-muted">
           New here?{" "}
-          <Link href="/register" className="text-brand hover:underline">
+          <Link href="/register" className="font-semibold text-accent hover:text-accent-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface">
             Create an account
           </Link>
         </p>
       </div>
 
       {/* Demo credential hints */}
-      <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-xs text-zinc-500 space-y-1">
-        <p className="font-semibold text-zinc-700">Demo credentials</p>
+      <div className="demo-panel space-y-1">
+        <p className="font-semibold text-foreground">Demo credentials</p>
         <p>
           <span className="font-medium">Customer</span>&nbsp;
           customer@swiftdrop.local / Customer#12345

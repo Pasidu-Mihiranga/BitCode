@@ -17,7 +17,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (!loaded) {
     return (
-      <div className="flex items-center justify-center py-24 text-sm text-zinc-400">
+      <div className="flex items-center justify-center py-24 text-sm text-muted">
         Checking permissions…
       </div>
     );

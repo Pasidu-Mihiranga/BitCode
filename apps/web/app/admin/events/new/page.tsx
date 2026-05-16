@@ -86,7 +86,7 @@ export default function NewEventPage() {
                 <input className="input" required value={it.name} onChange={(e) => updateItem(idx, { name: e.target.value })} />
               </div>
               <div className="md:col-span-3">
-                <label className="label">Price (₹)</label>
+                <label className="label">Price (LKR)</label>
                 <input
                   className="input"
                   type="number"

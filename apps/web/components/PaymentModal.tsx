@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api";
 import { Countdown } from "./Countdown";
 import { PaymentSuccess } from "./PaymentSuccess";
+import { formatLkr } from "@/lib/currency";
 
 type Method = "card" | "upi" | "wallet" | "netbanking";
 
@@ -103,7 +104,7 @@ export function PaymentModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
       <motion.div
         initial={{ scale: 0.92, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -114,31 +115,29 @@ export function PaymentModal({
         <AnimatePresence mode="wait">
           {phase === "timer" && (
             <motion.div key="timer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <h2 className="text-lg font-semibold">Stock reserved for you</h2>
-              <p className="mt-1 text-sm text-zinc-600">{reservation.itemName}</p>
-              <p className="mt-1 text-sm text-zinc-500">
-                ₹{(reservation.priceCents / 100).toLocaleString("en-IN")}
+              <h2 className="section-title">Stock reserved for you</h2>
+              <p className="mt-1 text-sm text-foreground">{reservation.itemName}</p>
+              <p className="mt-1 text-sm text-muted">
+                {formatLkr(reservation.priceCents)}
               </p>
               <div className="mt-6 text-center">
-                <div className="text-4xl">
-                  <Countdown target={expiresAt} onZero={onClose} />
-                </div>
-                <p className="mt-1 text-xs text-zinc-500">Time left to confirm</p>
-                <p className="mt-1 text-xs text-zinc-400">{extLeft} extension{extLeft === 1 ? "" : "s"} remaining</p>
+                <Countdown target={expiresAt} onZero={onClose} size="md" />
+                <p className="mt-1 text-xs text-muted">Time left to confirm</p>
+                <p className="mt-1 text-xs text-muted">{extLeft} extension{extLeft === 1 ? "" : "s"} remaining</p>
               </div>
-              {error && <p className="mt-3 text-sm text-rose-600 text-center">{error}</p>}
+              {error && <p className="mt-3 alert-error text-center">{error}</p>}
               <div className="mt-6 grid grid-cols-3 gap-2">
                 <button onClick={decline} disabled={busy} className="btn-secondary">Decline</button>
                 <button
                   onClick={extend}
                   disabled={busy || extLeft === 0}
-                  className="btn-ghost border border-zinc-200"
+                  className="btn-ghost"
                 >
                   {extLeft === 0 ? "No extensions" : `+60 s (${extLeft} left)`}
                 </button>
                 <button onClick={startConfirm} disabled={busy} className="btn-primary">Confirm payment</button>
               </div>
-              <p className="mt-3 text-center text-xs text-zinc-400">
+              <p className="mt-3 text-center text-xs text-muted">
                 Demo build — no real payment gateway is contacted.
               </p>
             </motion.div>
@@ -146,24 +145,28 @@ export function PaymentModal({
 
           {phase === "methods" && (
             <motion.div key="methods" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-              <h2 className="text-lg font-semibold">Choose payment method</h2>
-              <p className="mt-1 text-sm text-zinc-500">Mock pickers — any choice succeeds.</p>
+              <h2 className="section-title">Choose payment method</h2>
+              <p className="mt-1 text-sm text-muted">Mock pickers — any choice succeeds.</p>
               <div className="mt-4 grid grid-cols-2 gap-3">
                 {methods.map((m) => (
                   <button
                     key={m}
                     onClick={() => pay(m)}
                     disabled={busy}
-                    className="rounded-xl border border-zinc-200 p-4 text-left transition hover:border-brand hover:shadow-md"
+                    className="rounded-2xl bg-surface p-4 text-left shadow-neu-inset transition-all duration-neu ease-out hover:-translate-y-px hover:shadow-neu-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:shadow-neu-inset-deep"
                   >
-                    <div className="text-sm font-medium">{METHOD_LABELS[m]}</div>
-                    <div className="mt-1 text-xs text-zinc-500">tap to pay</div>
+                    <div className="text-sm font-semibold text-foreground">{METHOD_LABELS[m]}</div>
+                    <div className="mt-1 text-xs text-muted">tap to pay</div>
                   </button>
                 ))}
               </div>
-              {error && <p className="mt-3 text-sm text-rose-600 text-center">{error}</p>}
+              {error && <p className="mt-3 alert-error text-center">{error}</p>}
               <div className="mt-4 text-center">
-                <button onClick={() => setPhase("timer")} className="text-sm text-zinc-500 hover:underline">
+                <button
+                  type="button"
+                  onClick={() => setPhase("timer")}
+                  className="text-sm font-medium text-accent hover:text-accent-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                >
                   Back
                 </button>
               </div>

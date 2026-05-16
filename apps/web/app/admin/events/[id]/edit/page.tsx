@@ -108,6 +108,7 @@ export default function EditEventPage() {
                 />
               </div>
               <div className="md:col-span-3">
+                <label className="label">Price (LKR)</label>
                 <input
                   className="input"
                   type="number"

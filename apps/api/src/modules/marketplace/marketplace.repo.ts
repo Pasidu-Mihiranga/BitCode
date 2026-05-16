@@ -2,7 +2,7 @@
  * Marketplace repo — read-only, no audit (audit is for state changes only).
  */
 
-import { eq, sql } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db, type DbTx } from "../../db/client";
 import { events, items, type Event, type Item } from "../../db/schema";
 
@@ -17,7 +17,7 @@ export async function listEventsWithItems(
   const its = await exec
     .select()
     .from(items)
-    .where(sql`event_id = ANY(${ids})`);
+    .where(inArray(items.eventId, ids));
   return evts.map((e) => ({
     ...e,
     items: its

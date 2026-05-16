@@ -6,6 +6,7 @@ import { api, ApiError } from "@/lib/api";
 import { useEventSocket } from "@/lib/socket";
 import { Countdown } from "@/components/Countdown";
 import { PaymentModal } from "@/components/PaymentModal";
+import { formatLkr } from "@/lib/currency";
 
 type Item = {
   id: string;
@@ -54,8 +55,8 @@ export default function EventDetailPage() {
     })();
   }, [id]);
 
-  if (loading) return <p>Loading event…</p>;
-  if (!event) return <p>Not found.</p>;
+  if (loading) return <p className="text-muted">Loading event…</p>;
+  if (!event) return <p className="text-muted">Not found.</p>;
 
   const statusNow = (eventStatus ?? event.status) as Event["status"];
 
@@ -88,17 +89,29 @@ export default function EventDetailPage() {
   return (
     <>
       <article className="space-y-6">
-        <div className="aspect-[2/1] overflow-hidden rounded-2xl bg-gradient-to-br from-zinc-200 to-zinc-300">
+        <div className="media-well relative flex aspect-[2/1] items-center justify-center">
           {event.coverPhotoUrl && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={event.coverPhotoUrl} alt="" className="h-full w-full object-cover" />
+            <img
+              src={event.coverPhotoUrl}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          )}
+          {statusNow === "locked" && (
+            <div className="relative z-10 flex flex-col items-center justify-center gap-2 px-6 text-center">
+              <span className="text-sm font-semibold uppercase tracking-[0.25em] text-muted">
+                Opens in
+              </span>
+              <Countdown target={event.goLiveAt} size="xl" />
+            </div>
           )}
         </div>
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">{event.name}</h1>
-          <div className="text-sm text-zinc-500">
+          <h1 className="page-title text-2xl md:text-3xl">{event.name}</h1>
+          <div className="text-sm text-muted">
             {statusNow === "locked" ? (
-              <>Opens in <Countdown target={event.goLiveAt} /></>
+              <span>Starts {new Date(event.goLiveAt).toLocaleString()}</span>
             ) : (
               <>Status: {statusNow.replace("_", " ")}</>
             )}
@@ -106,7 +119,7 @@ export default function EventDetailPage() {
         </div>
 
         {error && (
-          <div className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+          <div className="alert-error">{error}</div>
         )}
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -119,8 +132,8 @@ export default function EventDetailPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="font-semibold">{i.name}</h3>
-                    <p className="mt-1 text-sm text-zinc-500">
-                      ₹{(i.unitPriceCents / 100).toLocaleString("en-IN")}
+                    <p className="mt-1 text-sm text-muted">
+                      {formatLkr(i.unitPriceCents)}
                     </p>
                   </div>
                   {soldOut ? (
@@ -130,7 +143,7 @@ export default function EventDetailPage() {
                   )}
                 </div>
                 <div className="mt-4 flex items-center justify-between">
-                  <p className="text-xs text-zinc-400">
+                  <p className="text-xs text-muted">
                     of {i.stockQuantity} total · {i.soldCount} sold
                   </p>
                   <button

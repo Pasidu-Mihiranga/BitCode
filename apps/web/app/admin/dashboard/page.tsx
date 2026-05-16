@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useRouter } from "next/navigation";
+import { formatLkr } from "@/lib/currency";
 
 type DashboardEvent = {
   id: string;
@@ -57,8 +58,8 @@ export default function AdminDashboardPage() {
     <section className="space-y-6">
       <header className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Admin dashboard</h1>
-          <p className="text-sm text-zinc-500">Live event status, sold units, and revenue.</p>
+          <h1 className="page-title">Admin dashboard</h1>
+          <p className="text-sm text-muted">Live event status, sold units, and revenue.</p>
         </div>
         <div className="flex gap-2">
           <Link href="/admin/events/new" className="btn-primary">+ New event</Link>
@@ -73,13 +74,13 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-semibold">{e.name}</h3>
-                <p className="text-sm text-zinc-500">
+                <p className="text-sm text-muted">
                   {e.status} · go-live {new Date(e.goLiveAt).toLocaleString()}
                 </p>
               </div>
               <div className="flex gap-2">
                 {e.status === "locked" && (
-                  <button onClick={() => force(e.id, "force-open")} className="btn-ghost border border-zinc-200">
+                  <button onClick={() => force(e.id, "force-open")} className="btn-ghost ">
                     Force open
                   </button>
                 )}
@@ -92,7 +93,7 @@ export default function AdminDashboardPage() {
             </div>
             <div className="mt-4 grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
               <Metric label="Units sold" value={e.totalUnitsSold.toLocaleString()} />
-              <Metric label="Revenue" value={`₹${(e.totalRevenueCents / 100).toLocaleString("en-IN")}`} />
+              <Metric label="Revenue" value={formatLkr(e.totalRevenueCents)} />
               <Metric label="Items" value={String(e.items.length)} />
               <Metric
                 label="Remaining"
@@ -105,7 +106,7 @@ export default function AdminDashboardPage() {
               />
             </div>
             <table className="mt-4 w-full text-left text-sm">
-              <thead className="text-xs uppercase text-zinc-500">
+              <thead className="text-xs uppercase text-muted">
                 <tr>
                   <th className="py-1">Item</th>
                   <th className="py-1">Stock</th>
@@ -116,12 +117,12 @@ export default function AdminDashboardPage() {
               </thead>
               <tbody>
                 {e.items.map((i) => (
-                  <tr key={i.id} className="border-t border-zinc-100">
+                  <tr key={i.id} className="border-t border-black/5">
                     <td className="py-2">{i.name}</td>
                     <td className="py-2">{i.stockQuantity}</td>
                     <td className="py-2">{i.reservedStock}</td>
                     <td className="py-2">{i.soldCount}</td>
-                    <td className="py-2">₹{(i.revenueCents / 100).toLocaleString("en-IN")}</td>
+                    <td className="py-2">{formatLkr(i.revenueCents)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -136,7 +137,7 @@ export default function AdminDashboardPage() {
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-xs text-zinc-500">{label}</div>
+      <div className="text-xs text-muted">{label}</div>
       <div className="text-lg font-semibold">{value}</div>
     </div>
   );

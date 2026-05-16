@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { formatLkr } from "@/lib/currency";
 import { useEffect } from "react";
 
 export function PaymentSuccess({
@@ -27,9 +28,9 @@ export function PaymentSuccess({
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: "spring", stiffness: 220, damping: 14 }}
-        className="rounded-full bg-emerald-100 p-4"
+        className="icon-well bg-accent-soft text-success"
       >
-        <svg viewBox="0 0 24 24" className="h-10 w-10 text-emerald-600" fill="none" stroke="currentColor" strokeWidth="2.5">
+        <svg viewBox="0 0 24 24" className="h-10 w-10 text-success" fill="none" stroke="currentColor" strokeWidth="2.5">
           <motion.path
             initial={{ pathLength: 0 }}
             animate={{ pathLength: 1 }}
@@ -40,11 +41,11 @@ export function PaymentSuccess({
           />
         </svg>
       </motion.div>
-      <h2 className="mt-4 text-lg font-semibold text-emerald-700">Payment succeeded</h2>
-      <p className="mt-1 text-sm text-zinc-600">
-        Paid ₹{(amountCents / 100).toLocaleString("en-IN")}
+      <h2 className="mt-4 section-title text-success">Payment succeeded</h2>
+      <p className="mt-1 text-sm text-muted">
+        Paid {formatLkr(amountCents)}
       </p>
-      <p className="mt-1 text-xs text-zinc-400">Order #{orderId.slice(0, 8)}</p>
+      <p className="mt-1 text-xs text-muted">Order #{orderId.slice(0, 8)}</p>
     </motion.div>
   );
 }

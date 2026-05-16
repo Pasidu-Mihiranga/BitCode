@@ -9,6 +9,7 @@
 
 import { redis, RedisKeys } from "../shared/redis";
 import { AppError } from "../shared/errors";
+import { getHeader, type HeaderSource } from "../shared/headers";
 
 export interface RateLimitOptions {
   bucket: string; // e.g. "purchase", "login"
@@ -40,8 +41,8 @@ export async function enforceRateLimit(opts: RateLimitOptions): Promise<void> {
   }
 }
 
-export function clientIp(headers: Headers, fallback: string | null): string {
-  const xff = headers.get("x-forwarded-for");
+export function clientIp(headers: HeaderSource, fallback: string | null): string {
+  const xff = getHeader(headers, "x-forwarded-for");
   if (xff) return xff.split(",")[0]!.trim();
   return fallback ?? "unknown";
 }
