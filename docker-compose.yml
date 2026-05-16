@@ -76,6 +76,25 @@ services:
     expose:
       - "3000"
 
+  # ===== Predictions microservice (MiroFish + Gemini orchestrator) =====
+  predictions:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      INSTANCE_ID: predictions
+      SERVICE_MODE: predictions
+      RUN_SWEEPER: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    expose:
+      - "3000"
+
   web:
     build:
       context: ./apps/web
@@ -98,6 +117,7 @@ services:
     depends_on:
       - api1
       - api2
+      - predictions
       - web
 
 volumes:

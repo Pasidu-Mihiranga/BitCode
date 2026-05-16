@@ -37,6 +37,12 @@ const links: Array<{
     isActive: (p) => p === "/admin/customers" || p.startsWith("/admin/customers/"),
   },
   {
+    href: "/admin/predictions",
+    label: "Predictions",
+    variant: "secondary",
+    isActive: (p) => p === "/admin/predictions" || p.startsWith("/admin/predictions/"),
+  },
+  {
     href: "/admin/system-logs",
     label: "System logs",
     variant: "secondary",

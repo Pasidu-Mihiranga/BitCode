@@ -33,6 +33,11 @@ export type ErrorCode =
   | "RESERVATION_NOT_ACTIVE"
   | "EXTENSION_LIMIT_REACHED"
   | "INVALID_PAYMENT_METHOD"
+  // predictions (MiroFish microservice)
+  | "PREDICTION_ENGINE_OFFLINE"
+  | "PREDICTION_LLM_FAILED"
+  | "PREDICTION_INSUFFICIENT_DATA"
+  | "PREDICTION_NOT_FOUND"
   // system
   | "RATE_LIMITED"
   | "VALIDATION_ERROR"
@@ -64,6 +69,10 @@ const HTTP_FOR_CODE: Record<ErrorCode, number> = {
   RESERVATION_NOT_ACTIVE: 409,
   EXTENSION_LIMIT_REACHED: 409,
   INVALID_PAYMENT_METHOD: 400,
+  PREDICTION_ENGINE_OFFLINE: 503,
+  PREDICTION_LLM_FAILED: 502,
+  PREDICTION_INSUFFICIENT_DATA: 409,
+  PREDICTION_NOT_FOUND: 404,
   RATE_LIMITED: 429,
   VALIDATION_ERROR: 400,
   INTERNAL_ERROR: 500,
@@ -95,6 +104,10 @@ const HUMAN_MESSAGE: Record<ErrorCode, string> = {
   RESERVATION_NOT_ACTIVE: "This reservation is no longer active.",
   EXTENSION_LIMIT_REACHED: "You've already used both extensions.",
   INVALID_PAYMENT_METHOD: "Please choose a valid payment method.",
+  PREDICTION_ENGINE_OFFLINE: "Prediction engine is offline. Try again shortly.",
+  PREDICTION_LLM_FAILED: "Prediction analysis is temporarily unavailable.",
+  PREDICTION_INSUFFICIENT_DATA: "Not enough activity yet to run a prediction. Try after a few sales.",
+  PREDICTION_NOT_FOUND: "Prediction run not found.",
   RATE_LIMITED: "Too many requests. Please slow down.",
   VALIDATION_ERROR: "Please check the highlighted fields.",
   INTERNAL_ERROR: "Something went wrong on our end. Please try again.",
