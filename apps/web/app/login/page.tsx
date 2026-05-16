@@ -23,12 +23,13 @@ export default function LoginPage() {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
+      // Admins go to the dashboard; customers go to the marketplace.
       router.push(out.role === "admin" ? "/admin/dashboard" : "/events");
-    } catch (e: any) {
-      if (e instanceof ApiError && e.code === "EMAIL_NOT_VERIFIED") {
+    } catch (err: any) {
+      if (err instanceof ApiError && err.code === "EMAIL_NOT_VERIFIED") {
         setNeedsVerify(true);
       }
-      setError((e as Error).message);
+      setError((err as Error).message);
     } finally {
       setBusy(false);
     }
@@ -42,18 +43,22 @@ export default function LoginPage() {
         method: "POST",
         body: JSON.stringify({ email }),
       });
-      setError("We sent a fresh verification link. Check your inbox (or MailHog).");
-    } catch (e: any) {
-      setError((e as Error).message);
+      setError("A fresh verification link has been sent. Check your MailHog inbox.");
+    } catch (err: any) {
+      setError((err as Error).message);
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="mx-auto max-w-md">
+    <div className="mx-auto max-w-md space-y-4">
       <div className="card p-6">
         <h1 className="text-xl font-semibold">Welcome back</h1>
+        <p className="mt-1 text-sm text-zinc-500">
+          Both customers and admins use this login page.
+        </p>
+
         <form onSubmit={onSubmit} className="mt-4 space-y-4">
           <div>
             <label className="label">Email</label>
@@ -77,21 +82,43 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
+
           {error && <p className="text-sm text-rose-600">{error}</p>}
+
           {needsVerify && (
-            <button type="button" onClick={resend} className="btn-secondary w-full" disabled={busy}>
+            <button
+              type="button"
+              onClick={resend}
+              className="btn-secondary w-full"
+              disabled={busy}
+            >
               Resend verification email
             </button>
           )}
+
           <button type="submit" className="btn-primary w-full" disabled={busy}>
             {busy ? "Signing in…" : "Sign in"}
           </button>
         </form>
+
         <p className="mt-4 text-center text-sm text-zinc-500">
           New here?{" "}
           <Link href="/register" className="text-brand hover:underline">
             Create an account
           </Link>
+        </p>
+      </div>
+
+      {/* Demo credential hints */}
+      <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-xs text-zinc-500 space-y-1">
+        <p className="font-semibold text-zinc-700">Demo credentials</p>
+        <p>
+          <span className="font-medium">Customer</span>&nbsp;
+          customer@swiftdrop.local / Customer#12345
+        </p>
+        <p>
+          <span className="font-medium">Admin</span>&nbsp;
+          admin@swiftdrop.local / Admin#12345
         </p>
       </div>
     </div>
