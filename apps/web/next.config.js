@@ -10,10 +10,8 @@ module.exports = {
       (process.env.VERCEL ? null : "http://api1:3000");
     if (!apiBase) return [];
     const base = apiBase.replace(/\/$/, "");
-    return [
-      { source: "/api/:path*", destination: `${base}/api/:path*` },
-      { source: "/ws/:path*", destination: `${base.replace(/^http/, "ws")}/ws/:path*` },
-    ];
+    // WebSockets use NEXT_PUBLIC_WS_BASE_URL in the browser (no http→ws rewrite).
+    return [{ source: "/api/:path*", destination: `${base}/api/:path*` }];
   },
   experimental: { typedRoutes: false },
 };
